@@ -1,5 +1,3 @@
-
-
 ---
 title: "Análisis comparativo de la situación "
 subtitle: "ENPOVE"
@@ -15,7 +13,7 @@ output:
 ## Introducción
 
 :::{.lead}
- highlight
+This document present an analysis of multidimensional poverty in Peru
 :::
 
  
