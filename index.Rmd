@@ -699,7 +699,6 @@ deprivation_profile$school_attendance <- df_household_roster |>
     .collapse = TRUE
   )
 
-
 ## crear sum de indicadores, hay manera más eficaz de hacerlo??
 
 df_household_roster3 <- df_household_roster  |>
