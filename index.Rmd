@@ -1,5 +1,5 @@
 ---
-title: "Análisis comparativo de la situación "
+title: "Multidimensional Poverty Index (MPI) for Venezualan in Peru"
 subtitle: "ENPOVE"
 date: "2022"
 author: IM-ACNUR
@@ -48,7 +48,7 @@ library(mpindex)
 #write.csv( read.csv(system.file("extdata", "global-mpi-specs.csv", package = "mpindex")), "enpov-mpi-specs.csv")
 specs_file <- here::here( "enpov-mpi-specs.csv")
 mpi_specs <- define_mpi_specs( specs_file ,
-  .poverty_cutoffs = c(1/3, 0.2, 0.8),
+  .poverty_cutoffs = c( 0.2, 1/3,  0.8),
   .uid = 'uuid',
   .aggregation = 'class' )
 options(mpi_specs = mpi_specs)
@@ -80,9 +80,58 @@ read.csv(specs_file) |>
   gt::tab_footnote('Source: Alkire, S., Kanagaratnam, U. and Suppa, N. (2020). ‘The global Multidimensional Poverty Index (MPI): 2020 revision’, OPHI MPI Methodological Note 49, Oxford Poverty and Human Development Initiative, University of Oxford.')
 ```
 
-# Household Preprocessing
+# Indicators 
+    
+```{r function-plot_indic}
+#' plot_indic
+#' 
+#' Plotting functions to display indicators
+#' 
+#' @param indic the indicator vector
+#' @param cross the crosstab variable vector
+#' @param weight the weight vector
+#' 
+#' @import ggplot2
+#' @import unhcrthemes
+#' @return a ggplot2 object
+#' 
 
-```{r  df_household preprocessing}
+plot_indic <- function(indic, cross, weight){
+  
+  p <- sjPlot::plot_xtab(x= indic,
+                  grp = cross,
+                  type = "bar",
+                  weight.by = weight,
+                  # bar.pos = "stack",
+                  # sort.frq =  "asc",
+                  #show.ci = TRUE,
+                  # wrap.labels = 40,
+                  show.total = FALSE,
+                  show.summary = FALSE,
+                  show.prc = FALSE,
+                  # summary.pos = "r",
+                  coord.flip = TRUE) + 
+  ## and the chart labels
+  labs(title =  sjlabelled::get_label(indic),
+       subtitle = paste0("By ",sjlabelled::get_label(cross) ),
+       x = "",
+       y = "",
+       caption = "Source: ENPOVE 2022 inei.gob.pe microdatos"
+      ) +
+  ## Add UNHCR Theme
+  unhcrthemes::theme_unhcr(font_size = 12,
+                           # grid = "Y", axis = "X", axis_title = "y"
+                           grid = "X",  axis = "Y",  axis_title = "X"
+  ) 
+  return(p)  
+}
+```
+   
+  
+ 
+
+
+```{r  df_household_preprocessing}
 ##Preprocessing
 
 df_household <- read_sav(here::here("data-raw","ENPOVE2022_V_100 Características de la vivienda y del hogar.sav"))
@@ -125,12 +174,9 @@ df_household <- df_household  |>
 
 ```
 
-# Household
-
-```{r  df_household}
-
+```{r  df_household_indicator}
 ##### Data Analysis ########################################
-#  'Hay necesidad' = 0, 'No hay necesidad/vulnerabilidad' =1
+#  'Deprived' = 0, 'Not Deprived' = 1
 
 ######    DIMENSIÓN 3: SERVICIOS PÚBLICOS ####################
 
@@ -143,9 +189,13 @@ df_household <- df_household |>
           dplyr::mutate(drinking_water = dplyr::case_when(
             P108_1 == 1 ~ 1,   TRUE ~ 0   ) )
 df_household$drinking_water  <- labelled::labelled(df_household$drinking_water,
-  labels = c( 'Hay necesidad' = 0, 'No hay necesidad/vulnerabilidad' =1 ),
-  label = "INDICADOR 1: DRINKING WATER")
+  labels = c( 'Deprived' = 0, 'Not Deprived' = 1 ),
+  label = "Living Standards Drinking water")
 
+plot_indic(indic = df_household$drinking_water, 
+                       cross = df_household$class, 
+                       weight = df_household$factorfinal)
+ 
 deprivation_profile$drinking_water <- df_household |>
   define_deprivation(
     .indicator = drinking_water,
@@ -157,7 +207,7 @@ deprivation_profile$drinking_water <- df_household |>
 #           dplyr::mutate(drinking_waterv2 = dplyr::case_when(
 #             P108_1 < 3 ~ 1,   TRUE ~ 0   ) )
 # df_household$drinking_waterv2  <- labelled::labelled(df_household$drinking_waterv2,
-#   labels = c( 'Hay necesidad' = 0, 'No hay necesidad/vulnerabilidad' =1 ),
+#   labels = c( 'Deprived' = 0, 'Not Deprived' = 1 ),
 #   label = "INDICADOR 1:PORCENTAJE DE HOGARES CON NECESIDADES DE AGUA v2")
 
 
@@ -168,8 +218,13 @@ df_household <- df_household |>
           dplyr::mutate(sanitation = dplyr::case_when(
             P108_2 == 1 ~ 1,   TRUE ~ 0   ) )
 df_household$sanitation  <- labelled::labelled(df_household$sanitation,
-  labels = c( 'Hay necesidad' = 0, 'No hay necesidad/vulnerabilidad' =1 ),
-  label = "INDICADOR 2: SANITATION")
+  labels = c( 'Deprived' = 0, 'Not Deprived' = 1 ),
+  label = "Living Standards |	Sanitation")
+
+
+plot_indic(indic = df_household$sanitation, 
+                       cross = df_household$class, 
+                       weight = df_household$factorfinal)
 
 deprivation_profile$sanitation <- df_household |>
   define_deprivation(
@@ -182,7 +237,7 @@ deprivation_profile$sanitation <- df_household |>
 #           dplyr::mutate(sanitationv2 = dplyr::case_when(
 #             P108_2 < 3 ~ 1,   TRUE ~ 0   ) )
 # df_household$sanitationv2  <- labelled::labelled(df_household$sanitationv2,
-#   labels = c( 'Hay necesidad' = 0, 'No hay necesidad/vulnerabilidad' =1 ),
+#   labels = c( 'Deprived' = 0, 'Not Deprived' = 1 ),
 #   label = "INDICADOR 2:PORCENTAJE DE HOGARES CON NECESIDADES DE SANEAMIENTO v2")
 
 
@@ -193,15 +248,20 @@ df_household <- df_household |>
           dplyr::mutate(electricity = dplyr::case_when(
             P108_3 == 1 ~ 1,   TRUE ~ 0   ) )
 df_household$electricity  <- labelled::labelled(df_household$electricity,
-  labels = c( 'Hay necesidad' = 0, 'No hay necesidad/vulnerabilidad' =1 ),
-  label = "INDICADOR 3: ELECTRICITY")
+  labels = c( 'Deprived' = 0, 'Not Deprived' = 1 ),
+  label = "Living Standards |	Electricity")
+
+
+plot_indic(indic = df_household$electricity, 
+                       cross = df_household$class, 
+                       weight = df_household$factorfinal)
 
 deprivation_profile$electricity <- df_household |>
   define_deprivation(
     .indicator = electricity,
     .cutoff = P108_3 == 1
   )
-
+ 
 #######    DIMENSIÓN 4: CONDICIONES DE VIVIENDA ####################
 
 ##### INDICADOR 1: ADEQUATE FLOORING
@@ -214,8 +274,8 @@ df_household <- df_household |>
           dplyr::mutate(ind04_01 = dplyr::case_when(
             P104 %in% c(1:5) ~ 1,   TRUE ~ 0   ) )
 df_household$ind04_01  <- labelled::labelled(df_household$ind04_01,
-  labels = c( 'Hay necesidad' = 0, 'No hay necesidad/vulnerabilidad' =1 ),
-  label = "INDICADOR 1: ADEQUATE FLOORING")
+  labels = c( 'Deprived' = 0, 'Not Deprived' = 1 ),
+  label = "Adequate Flouring")
 
 
 ##### INDICADOR 2: ADEQUATE WALLS
@@ -228,8 +288,8 @@ df_household <- df_household |>
           dplyr::mutate(ind04_02 = dplyr::case_when(
             P102 %in% c(1:3) ~ 1,   TRUE ~ 0   ) )
 df_household$ind04_02  <- labelled::labelled(df_household$ind04_02,
-  labels = c( 'Hay necesidad' = 0, 'No hay necesidad/vulnerabilidad' =1 ),
-  label = "INDICADOR 2: ADEQUATE WALLS")
+  labels = c( 'Deprived' = 0, 'Not Deprived' = 1 ),
+  label = "Adequate Walls")
 
 ## VERSION 2
 #Se utilizó los hogares que tengan paredes de: 3) Adobe; 4) Tapia; 5) Quincha (caña con barro); 6) Piedra con barro; 7) Madera (pona, tornillo, etc.); 8) Triplay/calamina/estera y 9) Otro material
@@ -238,8 +298,8 @@ df_household <- df_household |>
           dplyr::mutate(ind04_02v2 = dplyr::case_when(
             P102 %in% c(1:2) ~ 1,   TRUE ~ 0   ) )
 df_household$ind04_02v2  <- labelled::labelled(df_household$ind04_02v2,
-  labels = c( 'Hay necesidad' = 0, 'No hay necesidad/vulnerabilidad' =1 ),
-  label = "INDICADOR 2: ADEQUATE WALLS v2")
+  labels = c( 'Deprived' = 0, 'Not Deprived' = 1 ),
+  label = "Adequate Walls v2")
 
 ## VERSION 3
 #Se utilizó los hogares que tengan paredes de: 2) Piedra, sillar con cal o cemento; 3) Adobe; 4) Tapia; 5) Quincha (caña con barro); 6) Piedra con barro; 7) Madera (pona, tornillo, etc.); 8) Triplay/calamina/estera y 9) Otro material
@@ -248,8 +308,8 @@ df_household <- df_household |>
           dplyr::mutate(ind04_02v3 = dplyr::case_when(
             P102 == 1 ~ 1,   TRUE ~ 0   ) )
 df_household$ind04_02v3  <- labelled::labelled(df_household$ind04_02v3,
-  labels = c( 'Hay necesidad' = 0, 'No hay necesidad/vulnerabilidad' =1 ),
-  label = "INDICADOR 2: ADEQUATE WALLS v3")
+  labels = c( 'Deprived' = 0, 'Not Deprived' = 1 ),
+  label = "Adequate Walls v3")
 
 ##### INDICADOR 3: ADEQUATE ROOFS
 
@@ -261,8 +321,8 @@ df_household <- df_household |>
           dplyr::mutate(ind04_03 = dplyr::case_when(
             P103 %in% c(1:4) ~ 1,   TRUE ~ 0   ) )
 df_household$ind04_03  <- labelled::labelled(df_household$ind04_03,
-  labels = c( 'Hay necesidad' = 0, 'No hay necesidad/vulnerabilidad' =1 ),
-  label = "INDICADOR 3: ADEQUATE ROOFS")
+  labels = c( 'Deprived' = 0, 'Not Deprived' = 1 ),
+  label = "Adequate Roof")
 
 ## VERSION 2
 #Se utilizó los hogares que tengan techos de: 4) Planchas de calamina, fibra de cemento o similares; 5) Caña o estera con torta de barro o cemento; 6) Triplay/estera/carrizo; 7) Paja, hojas de palmera, etc y 8) Otro material
@@ -270,8 +330,8 @@ df_household <- df_household |>
           dplyr::mutate(ind04_03v2 = dplyr::case_when(
             P103 %in% c(1:3) ~ 1,   TRUE ~ 0   ) )
 df_household$ind04_03v2  <- labelled::labelled(df_household$ind04_03v2,
-  labels = c( 'Hay necesidad' = 0, 'No hay necesidad/vulnerabilidad' =1 ),
-  label = "INDICADOR 3: ADEQUATE ROOFS v2")
+  labels = c( 'Deprived' = 0, 'Not Deprived' = 1 ),
+  label = "Adequate Roof v2")
 
 
 ## INDICADOR 4: HOUSING CONDITIONS. The household has inadequate housing materials in any of the three components: floor, roof, or walls.
@@ -281,8 +341,13 @@ df_household <- df_household |>
             ind04_01 == 1 & ind04_02 == 1 & ind04_03 == 1 ~ 1,   
             TRUE ~ 0   ) )
 df_household$housing  <- labelled::labelled(df_household$housing,
-  labels = c( 'Hay necesidad' = 0, 'No hay necesidad/vulnerabilidad' =1 ),
-  label = "INDICADOR 4: HOUSING CONDITIONS (household has inadequate housing materials in any of the three components: floor, roof, or walls)")
+  labels = c( 'Deprived' = 0, 'Not Deprived' = 1 ),
+  label = "Living Standards: Adequate	Housing (floor, roof, walls)")
+
+
+plot_indic(indic = df_household$housing, 
+                       cross = df_household$class, 
+                       weight = df_household$factorfinal)
 
 ## VERSION 2
 # df_household <- df_household |>
@@ -290,7 +355,7 @@ df_household$housing  <- labelled::labelled(df_household$housing,
 #             (ind04_01 ==1 | ind04_02v2 ==1 | ind04_03 ==1) ~ 1,   
 #             TRUE ~ 0   ) )
 # df_household$housing  <- labelled::labelled(df_household$housing,
-#   labels = c( 'Hay necesidad' = 0, 'No hay necesidad/vulnerabilidad' =1 ),
+#   labels = c( 'Deprived' = 0, 'Not Deprived' = 1 ),
 #   label = "INDICADOR x:The household has inadequate housing materials in any of the three components: floor, roof, or walls.")
 
 ## VERSION 3
@@ -299,7 +364,7 @@ df_household$housing  <- labelled::labelled(df_household$housing,
 #             (ind04_01 ==1 | ind04_02v2 ==1 | ind04_03v2 ==1) ~ 1,   
 #             TRUE ~ 0   ) )
 # df_household$housing  <- labelled::labelled(df_household$housing,
-#   labels = c( 'Hay necesidad' = 0, 'No hay necesidad/vulnerabilidad' =1 ),
+#   labels = c( 'Deprived' = 0, 'Not Deprived' = 1 ),
 #   label = "INDICADOR x:The household has inadequate housing materials in any of the three components: floor, roof, or walls.")
 
 ## VERSION 4
@@ -308,7 +373,7 @@ df_household$housing  <- labelled::labelled(df_household$housing,
 #             (ind04_01 ==1 | ind04_02v3 ==1 | ind04_03 ==1) ~ 1,   
 #             TRUE ~ 0   ) )
 # df_household$housing  <- labelled::labelled(df_household$housing,
-#   labels = c( 'Hay necesidad' = 0, 'No hay necesidad/vulnerabilidad' =1 ),
+#   labels = c( 'Deprived' = 0, 'Not Deprived' = 1 ),
 #   label = "INDICADOR x:The household has inadequate housing materials in any of the three components: floor, roof, or walls.")
 
 ## VERSION 5
@@ -317,7 +382,7 @@ df_household$housing  <- labelled::labelled(df_household$housing,
 #             (ind04_01 ==1 | ind04_02v3 ==1 | ind04_03v2 ==1) ~ 1,   
 #             TRUE ~ 0   ) )
 # df_household$housing  <- labelled::labelled(df_household$housing,
-#   labels = c( 'Hay necesidad' = 0, 'No hay necesidad/vulnerabilidad' =1 ),
+#   labels = c( 'Deprived' = 0, 'Not Deprived' = 1 ),
 #   label = "INDICADOR x:The household has inadequate housing materials in any of the three components: floor, roof, or walls.")
 
 deprivation_profile$housing <- df_household |>
@@ -333,12 +398,12 @@ deprivation_profile$housing <- df_household |>
 df_household <-  df_household  |>
   dplyr::mutate(crowding = P15_N/P105 )  |>
   dplyr::mutate(ind04_04 = dplyr::case_when( 
-    crowding< 2.5 ~ 1, 
+    crowding < 2.5 ~ 1, 
     TRUE ~ 0)
   )
 df_household$ind04_04  <- labelled::labelled(df_household$ind04_04,
-  labels = c( 'Hay necesidad' = 0, 'No hay necesidad/vulnerabilidad' =1 ),
-  label = "INDICADOR 5: OVERCROWDING ")
+  labels = c( 'Deprived' = 0, 'Not Deprived' = 1 ),
+  label = "Sufficient Living scpace / Overcrowding")
 
 
 # Calculate crowding index - overcrowded when more than 2.5 persons per room (using number of bedrooms in the Household (P106))
@@ -352,8 +417,8 @@ df_household <-  df_household  |>
   )
 
 df_household$ind04_04v2  <- labelled::labelled(df_household$ind04_04v2,
-  labels = c( 'Hay necesidad' = 0, 'No hay necesidad/vulnerabilidad' =1 ),
-  label = "INDICADOR 5: OVERCROWDING v2")
+  labels = c( 'Deprived' = 0, 'Not Deprived' = 1 ),
+  label = "Sufficient Living scpace / Overcrowding v2")
 
 
 ##### INDICADOR 6: COOKING FUEL
@@ -362,8 +427,13 @@ df_household <- df_household |>
           dplyr::mutate(cooking_fuel = dplyr::case_when(
             P109 %in% c(1:3) ~ 1,   TRUE ~ 0   ) )
 df_household$cooking_fuel  <- labelled::labelled(df_household$cooking_fuel,
-  labels = c( 'Hay necesidad' = 0, 'No hay necesidad/vulnerabilidad' =1 ),
-  label = "INDICADOR 6: COOKING FUEL")
+  labels = c( 'Deprived' = 0, 'Not Deprived' = 1 ),
+  label = "Living Standards:	Cooking fuel")
+
+
+plot_indic(indic = df_household$cooking_fuel, 
+                       cross = df_household$class, 
+                       weight = df_household$factorfinal)
 
 deprivation_profile$cooking_fuel <- df_household |>
   define_deprivation(
@@ -407,8 +477,13 @@ df_household <- df_household |>
           dplyr::mutate(assets = dplyr::case_when(
             P110 > 2 ~ 1,   TRUE ~ 0   ) )
 df_household$assets  <- labelled::labelled(df_household$assets,
-  labels = c( 'Hay necesidad' = 0, 'No hay necesidad/vulnerabilidad' =1 ),
-  label = "INDICADOR 7: ASSETS (Household does not owns 3 or more items)") 
+  labels = c( 'Deprived' = 0, 'Not Deprived' = 1 ),
+  label = "Living Standards:	Assets (does not owns 3 or more esential items)") 
+
+
+plot_indic(indic = df_household$assets, 
+                       cross = df_household$class, 
+                       weight = df_household$factorfinal)
 
 deprivation_profile$assets <- df_household |>
   define_deprivation(
@@ -421,8 +496,13 @@ df_household <- df_household |>
           dplyr::mutate(assetsv2 = dplyr::case_when(
             P110 > 3 ~ 1,   TRUE ~ 0   ) )
 df_household$assetsv2  <- labelled::labelled(df_household$assetsv2,
-  labels = c( 'Hay necesidad' = 0, 'No hay necesidad/vulnerabilidad' =1 ),
-  label = "INDICADOR 7: ASSETS v2 (Household does not owns 2 or more items)") 
+  labels = c( 'Deprived' = 0, 'Not Deprived' = 1 ),
+  label = "Living Standards:	Assets (does not owns 2 or more items)") 
+
+
+plot_indic(indic = df_household$assetsv2, 
+                       cross = df_household$class, 
+                       weight = df_household$factorfinal)
 
 ##### INDICADOR 8: TIPO DE VIVIENDA
 
@@ -433,122 +513,17 @@ df_household <- df_household |>
           dplyr::mutate(ind04_07 = dplyr::case_when(
             P101 %in% c(1:2) ~ 1,   TRUE ~ 0   ) )
 df_household$ind04_07  <- labelled::labelled(df_household$ind04_07,
-  labels = c( 'Hay necesidad' = 0, 'No hay necesidad/vulnerabilidad' =1 ),
-  label = "INDICADOR 8: TIPO DE VIVIENDA") 
+  labels = c( 'Deprived' = 0, 'Not Deprived' = 1 ),
+  label = "Acceptable Accomodation type") 
+
+
+plot_indic(indic = df_household$ind04_07, 
+                       cross = df_household$class, 
+                       weight = df_household$factorfinal)
 
 ```
 
-
-```{r HogarViz}
-
-cross <- c("CIUDAD")
-crosslab <- "CIUDAD"
-# dput(names(df_household))
-data <- df_household |>
-        dplyr::select(CIUDAD, factorfinal , 
-#                        P21, 
-# P101, P102, P103, P104, P105, P106, P107, P108_1, 
-# P108_2, P108_3, P108_4, P109, P110_1, P110_2, P110_3, 
-# P110_4, P110_5, P110_6, P110_7, P110_8, P110_9, P110_10, 
-# P110_11, P110_12, P110_13, P111, P111A, P112_1, P112_2, 
-# P112_3, P112_4, P112_5, P112_6, P112_7, P112_8
-SEGMENTO,  Ubigeo,   uuid,
-drinking_water,  #drinking_waterv2, 
-sanitation,  #sanitationv2,
-electricity,
-#ind04_01,  
-#ind04_02,  #ind04_02v2, #ind04_02v3, 
-#ind04_03,  #ind04_03v2, 
-housing,
-#crowding,  
-ind04_04,  ind04_04v2,  
-#P106vf, crowdingv2, ind04_04v2, 
-cooking_fuel, # P110_14, # P110,        
-assets,  assetsv2, 
-#ind04_07
-ind04_07
-)
-# retrieve value and variable labels
-#data.var <- sjlabelled::get_label(data)
-data.val <-sjlabelled::get_labels(data)
-weight <- as.vector(data$factorfinal)
-
-for (i in 6:ncol(data)) {
-  # i <-5
-  var <- names(data)[i]
-  varlab <- sjlabelled::get_label(data[i])
-  type <- ifelse(lengths(data.val[i]) > 0, 
-                 paste0(" -- Categoric Variable"), 
-                 paste0(" -- Numeric Variable"))
-  #cat(paste0(i, "-", var, "-" ,varlab,"-" ,type,"\n\n"))
-  t <- as.data.frame(table(data[ , i] ))
-  if(nrow(t)>1 ) {
-    ## test if it is numeric or categoric variable
-    if(lengths(data.val[i]) > 0) {
-      # if(nrow(t)< 8) {
-      p <-   sjPlot::plot_xtab(x= data[[i]],
-                               grp = data[[cross]],
-                               type = "bar",
-                               weight.by = weight,
-                               # bar.pos = "stack",
-                              # sort.frq =  "asc",
-                               #show.ci = TRUE,
-                               wrap.labels = 40,
-                               show.total = FALSE,
-                               show.summary = FALSE,
-                               show.prc = FALSE,
-                               summary.pos = "r",
-                               coord.flip = TRUE) +
-        
-        unhcrthemes::theme_unhcr(font_size = 12,
-                                # grid = "Y", axis = "X", axis_title = "y"
-                                  grid = "X",  axis = "Y",  axis_title = "X"
-                                 ) + 
-        ## and the chart labels
-        labs(title = stringr::str_wrap(paste0(varlab) , 70),
-             subtitle = paste0("Cruzado con ", crosslab),
-             x = "",
-             y = "",
-             caption = "Fuente:  ENPOVE, https://proyectos.inei.gob.pe/microdatos/")
-    } else {
-      
-      
-      ## Print an histogram
-      p <-   sjPlot::plot_grpfrq(var.cnt = data[[i]],
-                                 var.grp = data[[cross]],
-                                 type = "bar",
-                                 weight.by = weight,
-                                 # sort.frq =  "asc",
-                                 # bar.pos = "stack",
-                                 wrap.labels = 40,
-                                 show.summary = FALSE,
-                                 show.prc = FALSE,
-                                 show.values = FALSE,
-                                 show.n = FALSE) +
-        
-        unhcrthemes::theme_unhcr(font_size = 12,
-                                 grid = "Y", 
-                                 axis = "X", 
-                                 axis_title = FALSE) + 
-        ## and the chart labels
-        labs(title = stringr::str_wrap(paste0(varlab) , 70),
-             subtitle = paste0("Cruzado con ",crosslab),
-             x = "",
-             y = "",
-             caption = "Fuente: ENPOVE, https://proyectos.inei.gob.pe/microdatos/")
-    }
-    print(p)
-    #ggsave( paste0("plot/",cross," - ", i, "-",var, ".png"),  plot =  p, device = "png", width = 24, height = 16, units = "cm")
-  } else {
-    cat(paste0("Un solo valor para ", var, "\n"))
-  }
-}
-
-```
- 
-# Household Roster Preprocessing
-
-```{r df_household_roster, echo=FALSE, cache=FALSE}
+```{r df_household_roster_preprocessing, echo=FALSE, cache=FALSE}
 
 df_household_roster <- read_sav(here::here("data-raw","ENPOVE2022_V_200-300-400-500-600-700-800.sav"))
 #df_household_roster |>  sjPlot::view_df()
@@ -592,9 +567,7 @@ df_household_roster <- df_household_roster  |>
 
 ```
 
-# Household Roster
-
-```{r df_household_roster preprocessing, echo=FALSE, cache = TRUE}
+```{r df_household_roster, echo=FALSE, cache = FALSE}
 
 #### Data Analysis ########################################
 # 0: Hay necesidad
@@ -607,8 +580,13 @@ df_household_roster <- df_household_roster |>
           dplyr::mutate(nutrition = dplyr::case_when(
             P401_5 == 0 ~ 1,   TRUE ~ 0   ) )
 df_household_roster$nutrition  <- labelled::labelled(df_household_roster$nutrition,
-  labels = c( 'Hay necesidad' = 0, 'No hay necesidad/vulnerabilidad' =1 ),
-  label = "INDICADOR 9: Aseguramiento de salud")
+  labels = c( 'Deprived' = 0, 'Not Deprived' = 1 ),
+  label = "Health:	Nutrition")
+
+
+plot_indic(indic = df_household_roster$nutrition, 
+                       cross = df_household_roster$class, 
+                       weight = df_household_roster$factorfinal)
 
 ## Get deprivaion
 deprivation_profile$nutrition <- df_household_roster |>
@@ -623,8 +601,13 @@ df_household_roster <- df_household_roster |>
           dplyr::mutate(child_mortality = dplyr::case_when(
             P406_1 %in% c(1:4) ~ 1,   TRUE ~ 0   ) )
 df_household_roster$child_mortality  <- labelled::labelled(df_household_roster$child_mortality,
-  labels = c( 'Hay necesidad' = 0, 'No hay necesidad/vulnerabilidad' =1 ),
-  label = "INDICADOR 10: Respuesta ante enfermedad ")
+  labels = c( 'Deprived' = 0, 'Not Deprived' = 1 ),
+  label = "Health |	Child mortality")
+
+plot_indic(indic = df_household_roster$child_mortality, 
+                       cross = df_household_roster$class, 
+                       weight = df_household_roster$factorfinal)
+
 
 deprivation_profile$child_mortality <- df_household_roster |>
   define_deprivation(
@@ -661,8 +644,15 @@ df_household_roster <- df_household_roster |>
           dplyr::mutate(year_schooling = dplyr::case_when(
             P205_A >17 & (P501 %in% c(6:11) | P501B %in% c(6:12)) ~ 1,   TRUE ~ 0   ) )
 df_household_roster$year_schooling  <- labelled::labelled(df_household_roster$year_schooling,
-  labels = c( 'Hay necesidad' = 0, 'No hay necesidad/vulnerabilidad' =1 ),
-  label = "INDICADOR 11: Escolaridad en adultos del hogar (Mayores de edad cuyo nivel educativo es igual o superior a secundaria completa) ")
+  labels = c( 'Deprived' = 0, 'Not Deprived' = 1 ),
+  label = "Education:	Years of schooling")
+#  label = "INDICADOR 11: Escolaridad en adultos del hogar (Mayores de edad cuyo nivel educativo es igual o superior a secundaria completa) ")
+
+
+plot_indic(indic = df_household_roster$year_schooling, 
+                       cross = df_household_roster$class, 
+                       weight = df_household_roster$factorfinal)
+
 
 deprivation_profile$year_schooling <- df_household_roster |>
   define_deprivation(
@@ -676,8 +666,14 @@ df_household_roster <- df_household_roster |>
           dplyr::mutate(school_attendance = dplyr::case_when(
             P205_A > 2 & P205_A < 18 & P506 == 1 ~ 1,   TRUE ~ 0   ) )
 df_household_roster$school_attendance  <- labelled::labelled(df_household_roster$school_attendance,
-  labels = c( 'Hay necesidad' = 0, 'No hay necesidad/vulnerabilidad' =1 ),
-  label = "INDICADOR 12: Escolaridad infantil (NNA entre 3 y 18 años matriculados en la escuela")
+  labels = c( 'Deprived' = 0, 'Not Deprived' = 1 ),
+  label = "Education:	School attendance")
+  #label = "INDICADOR 12: Escolaridad infantil (NNA entre 3 y 18 años matriculados en la escuela")
+
+
+plot_indic(indic = df_household_roster$school_attendance, 
+                       cross = df_household_roster$class, 
+                       weight = df_household_roster$factorfinal)
 
 deprivation_profile$school_attendance <- df_household_roster |>
   define_deprivation(
@@ -688,125 +684,125 @@ deprivation_profile$school_attendance <- df_household_roster |>
 
 
 ## crear sum de indicadores, hay manera más eficaz de hacerlo??
-
-df_household_roster3 <- df_household_roster  |>
-  group_by(uuid)  |>
-  summarise(sum_year_schooling = sum(year_schooling,na.rm = TRUE ))
-
-df_household_roster4 <- df_household_roster  |>
-  group_by(uuid)  |>
-  summarise(sum_school_attendance = sum(school_attendance,na.rm = TRUE ))
-
-df_household_roster <- merge(df_household_roster, df_household_roster3, by = "uuid")
-df_household_roster <- merge(df_household_roster, df_household_roster4, by = "uuid")
-
-df_household_roster<- df_household_roster  |>
-  group_by(uuid)  |>
-  dplyr::mutate(year_schooling_vf = sum_year_schooling / n())  |>
-  dplyr::mutate(school_attendance_vf = sum_school_attendance / n())
-
-
-################    DIMENSIÓN 0: POBREZA MONETARIA ####################
-## crear ubigeo del lugar de trabajo
-df_household_roster$P625A_COD_DEPA <- as.character(df_household_roster$P625A_COD_DEPA)
-df_household_roster$P625_COD_PROV <- as.character(df_household_roster$P625_COD_PROV)
-df_household_roster$P625_COD_DIST <- as.character(df_household_roster$P625_COD_DIST)
-
-df_household_roster <- df_household_roster  |>
-  dplyr::mutate(P625A_COD_DEPA = ifelse(nchar(P625A_COD_DEPA) < 2, paste0("0", P625A_COD_DEPA), P625A_COD_DEPA))
-
-df_household_roster <- df_household_roster  |>
-  dplyr::mutate(P625_COD_PROV = ifelse(nchar(P625_COD_PROV) < 2, paste0("0", P625_COD_PROV), P625_COD_PROV))
-
-df_household_roster <- df_household_roster  |>
-  dplyr::mutate(P625_COD_DIST = ifelse(nchar(P625_COD_DIST) < 2, paste0("0", P625_COD_DIST), P625_COD_DIST))
-
-df_household_roster <- df_household_roster  |>
-  dplyr::mutate(Ubigeo_Trabajo = dplyr::case_when(
-    P625==1 ~ Ubigeo,
-    P625==2 ~ paste0(P625A_COD_DEPA, P625_COD_PROV, P625_COD_DIST))
-    )
-
-## crear promedio de horas trabajadas
-df_household_roster$P625A_COD_DEPA <- as.character(df_household_roster$P615_T)
-df_household_roster$P625_COD_PROV <- as.character(df_household_roster$P616)
-df_household_roster$P625_COD_PROV <- as.character(df_household_roster$P616A)
-
-df_household_roster <- df_household_roster  |>
-  dplyr::mutate(HORAS_TRABAJADAS_PROMEDIO = dplyr::case_when(
-    P616==1 ~ P615_T,
-    P616==2 ~ P616A)
-    ) 
-
-########## SCRIPT INGRESO TOTAL
-## INGRESO EN DINERO 
-df_household_roster <- df_household_roster  |>
-  dplyr::mutate(M622_1 = dplyr::case_when(
-    P621==1 ~ P622_1*30,
-    P621==2 ~ P622_1*4.33,
-    P621==3 ~ P622_1*2,
-    P621==4 ~ P622_1*1,
-    TRUE ~ 0)
-    ) 
-
-## INGRESO EN ESPECIE
-df_household_roster <- df_household_roster  |>
-  dplyr::mutate(M622_2 = dplyr::case_when(
-    P621==1 ~ P622_2*30,
-    P621==2 ~ P622_2*4.33,
-    P621==3 ~ P622_2*2,
-    P621==4 ~ P622_2*1,
-    TRUE ~ 0)
-    )  
-  
-df_household_roster$P623_1 <- as.numeric(df_household_roster$P623_1)
-df_household_roster$P623_2 <- as.numeric(df_household_roster$P623_2)
-df_household_roster$P624_1 <- as.numeric(df_household_roster$P624_1)
-df_household_roster$P624_2 <- as.numeric(df_household_roster$P624_2)
-
-## crear ingreso total  
-df_household_roster$INGTOT <- df_household_roster$M622_1 +
-                    df_household_roster$M622_2 + 
-                    df_household_roster$P623_1 + 
-                    df_household_roster$P623_2 + 
-                    df_household_roster$P624_1 + 
-                   df_household_roster$P624_2
-
-## crear ingreso total monetario
-df_household_roster$INGTOT_MONETARIO <- df_household_roster$M622_1 + df_household_roster$P623_1 + df_household_roster$P624_1 
-summary(df_household_roster$INGTOT_MONETARIO)
-
-## crear ingreso total no monetario
-df_household_roster$INGTOT_NO_MONETARIO <- df_household_roster$M622_2 + df_household_roster$P623_2 + df_household_roster$P624_2
-summary(df_household_roster$INGTOT_NO_MONETARIO)
-
-
-################## Pobreza #########################
-## generar variable Ingreso_medio_persona1 (INGTOT) + Ingreso_medio_persona2 (INGTOT Monetario)
-## (INGTOT of household, divided by household members)
-## en muchos casos solo hay 1 ingreso en cada hogar (los demás miembros realmente no trabajan o no llenaron el cuestionario??)
-
-# Ingreso Household1 (INGTOT)
-
-df_household_roster$Ingreso_hogar1 <-  ave(df_household_roster$INGTOT, df_household_roster$uuid, FUN=sum)
-
-# Ingreso Household2 (INGTOT_Monetario)
-
-df_household_roster$Ingreso_hogar2 <-  ave(df_household_roster$INGTOT_MONETARIO, df_household_roster$uuid, FUN=sum)
-
-# Ingreso_medio_persona1  
-
-df_household_roster$NSELV <- as.numeric(df_household_roster$NSELV)
-
-df_household_roster <- df_household_roster  |>
-  group_by(NSELV)  |>
-  dplyr::mutate(N_Personas_Hogar = n())
-
-df_household_roster$Ingreso_Medio_Persona1 <- df_household_roster$Ingreso_hogar1/df_household_roster$N_Personas_Hogar
-
-# Ingreso_medio_persona2  
-
-df_household_roster$Ingreso_Medio_Persona2 <- df_household_roster$Ingreso_hogar2/df_household_roster$N_Personas_Hogar
+# 
+# df_household_roster3 <- df_household_roster  |>
+#   group_by(uuid)  |>
+#   summarise(sum_year_schooling = sum(year_schooling,na.rm = TRUE ))
+# 
+# df_household_roster4 <- df_household_roster  |>
+#   group_by(uuid)  |>
+#   summarise(sum_school_attendance = sum(school_attendance,na.rm = TRUE ))
+# 
+# df_household_roster <- merge(df_household_roster, df_household_roster3, by = "uuid")
+# df_household_roster <- merge(df_household_roster, df_household_roster4, by = "uuid")
+# 
+# df_household_roster<- df_household_roster  |>
+#   group_by(uuid)  |>
+#   dplyr::mutate(year_schooling_vf = sum_year_schooling / n())  |>
+#   dplyr::mutate(school_attendance_vf = sum_school_attendance / n())
+# 
+# 
+# ################    DIMENSIÓN 0: POBREZA MONETARIA ####################
+# ## crear ubigeo del lugar de trabajo
+# df_household_roster$P625A_COD_DEPA <- as.character(df_household_roster$P625A_COD_DEPA)
+# df_household_roster$P625_COD_PROV <- as.character(df_household_roster$P625_COD_PROV)
+# df_household_roster$P625_COD_DIST <- as.character(df_household_roster$P625_COD_DIST)
+# 
+# df_household_roster <- df_household_roster  |>
+#   dplyr::mutate(P625A_COD_DEPA = ifelse(nchar(P625A_COD_DEPA) < 2, paste0("0", P625A_COD_DEPA), P625A_COD_DEPA))
+# 
+# df_household_roster <- df_household_roster  |>
+#   dplyr::mutate(P625_COD_PROV = ifelse(nchar(P625_COD_PROV) < 2, paste0("0", P625_COD_PROV), P625_COD_PROV))
+# 
+# df_household_roster <- df_household_roster  |>
+#   dplyr::mutate(P625_COD_DIST = ifelse(nchar(P625_COD_DIST) < 2, paste0("0", P625_COD_DIST), P625_COD_DIST))
+# 
+# df_household_roster <- df_household_roster  |>
+#   dplyr::mutate(Ubigeo_Trabajo = dplyr::case_when(
+#     P625==1 ~ Ubigeo,
+#     P625==2 ~ paste0(P625A_COD_DEPA, P625_COD_PROV, P625_COD_DIST))
+#     )
+# 
+# ## crear promedio de horas trabajadas
+# df_household_roster$P625A_COD_DEPA <- as.character(df_household_roster$P615_T)
+# df_household_roster$P625_COD_PROV <- as.character(df_household_roster$P616)
+# df_household_roster$P625_COD_PROV <- as.character(df_household_roster$P616A)
+# 
+# df_household_roster <- df_household_roster  |>
+#   dplyr::mutate(HORAS_TRABAJADAS_PROMEDIO = dplyr::case_when(
+#     P616==1 ~ P615_T,
+#     P616==2 ~ P616A)
+#     ) 
+# 
+# ########## SCRIPT INGRESO TOTAL
+# ## INGRESO EN DINERO 
+# df_household_roster <- df_household_roster  |>
+#   dplyr::mutate(M622_1 = dplyr::case_when(
+#     P621==1 ~ P622_1*30,
+#     P621==2 ~ P622_1*4.33,
+#     P621==3 ~ P622_1*2,
+#     P621==4 ~ P622_1*1,
+#     TRUE ~ 0)
+#     ) 
+# 
+# ## INGRESO EN ESPECIE
+# df_household_roster <- df_household_roster  |>
+#   dplyr::mutate(M622_2 = dplyr::case_when(
+#     P621==1 ~ P622_2*30,
+#     P621==2 ~ P622_2*4.33,
+#     P621==3 ~ P622_2*2,
+#     P621==4 ~ P622_2*1,
+#     TRUE ~ 0)
+#     )  
+#   
+# df_household_roster$P623_1 <- as.numeric(df_household_roster$P623_1)
+# df_household_roster$P623_2 <- as.numeric(df_household_roster$P623_2)
+# df_household_roster$P624_1 <- as.numeric(df_household_roster$P624_1)
+# df_household_roster$P624_2 <- as.numeric(df_household_roster$P624_2)
+# 
+# ## crear ingreso total  
+# df_household_roster$INGTOT <- df_household_roster$M622_1 +
+#                     df_household_roster$M622_2 + 
+#                     df_household_roster$P623_1 + 
+#                     df_household_roster$P623_2 + 
+#                     df_household_roster$P624_1 + 
+#                    df_household_roster$P624_2
+# 
+# ## crear ingreso total monetario
+# df_household_roster$INGTOT_MONETARIO <- df_household_roster$M622_1 + df_household_roster$P623_1 + df_household_roster$P624_1 
+# #summary(df_household_roster$INGTOT_MONETARIO)
+# 
+# ## crear ingreso total no monetario
+# df_household_roster$INGTOT_NO_MONETARIO <- df_household_roster$M622_2 + df_household_roster$P623_2 + df_household_roster$P624_2
+# #summary(df_household_roster$INGTOT_NO_MONETARIO)
+# 
+# 
+# ################## Pobreza #########################
+# ## generar variable Ingreso_medio_persona1 (INGTOT) + Ingreso_medio_persona2 (INGTOT Monetario)
+# ## (INGTOT of household, divided by household members)
+# ## en muchos casos solo hay 1 ingreso en cada hogar (los demás miembros realmente no trabajan o no llenaron el cuestionario??)
+# 
+# # Ingreso Household1 (INGTOT)
+# 
+# df_household_roster$Ingreso_hogar1 <-  ave(df_household_roster$INGTOT, df_household_roster$uuid, FUN=sum)
+# 
+# # Ingreso Household2 (INGTOT_Monetario)
+# 
+# df_household_roster$Ingreso_hogar2 <-  ave(df_household_roster$INGTOT_MONETARIO, df_household_roster$uuid, FUN=sum)
+# 
+# # Ingreso_medio_persona1  
+# 
+# df_household_roster$NSELV <- as.numeric(df_household_roster$NSELV)
+# 
+# df_household_roster <- df_household_roster  |>
+#   group_by(NSELV)  |>
+#   dplyr::mutate(N_Personas_Hogar = n())
+# 
+# df_household_roster$Ingreso_Medio_Persona1 <- df_household_roster$Ingreso_hogar1/df_household_roster$N_Personas_Hogar
+# 
+# # Ingreso_medio_persona2  
+# 
+# df_household_roster$Ingreso_Medio_Persona2 <- df_household_roster$Ingreso_hogar2/df_household_roster$N_Personas_Hogar
 
 #################### Personas debajo linea de Pobreza 2021
 
@@ -905,95 +901,7 @@ df_household_roster$Ingreso_Medio_Persona2 <- df_household_roster$Ingreso_hogar2
 
 ```
 
-
-```{r HogarRostViz}
-# dput(names(df_household))
-data_roster <- df_household_roster |>
-        dplyr::select( CIUDAD, factorfinal , uuid,
-                       nutrition, child_mortality, year_schooling, school_attendance
-
-)
-# retrieve value and variable labels
-#data_roster.var <- sjlabelled::get_label(data_roster)
-data_roster.val <-sjlabelled::get_labels(data_roster)
-weight <- as.vector(data_roster$factorfinal)
-
-for (i in 5:ncol(data_roster)) {
-  # i <-5
-  var <- names(data_roster)[i]
-  varlab <- sjlabelled::get_label(data_roster[i])
-  type <- ifelse(lengths(data_roster.val[i]) > 0, 
-                 paste0(" -- Categoric Variable"), 
-                 paste0(" -- Numeric Variable"))
-  #cat(paste0(i, "-", var, "-" ,varlab,"-" ,type,"\n\n"))
-  t <- as.data.frame(table(data_roster[ , i] ))
-  if(nrow(t)>1 ) {
-    ## test if it is numeric or categoric variable
-    if(lengths(data_roster.val[i]) > 0) {
-      # if(nrow(t)< 8) {
-      p <-   sjPlot::plot_xtab(x= data_roster[[i]],
-                               grp = data_roster[[cross]],
-                               type = "bar",
-                               weight.by = weight,
-                               # bar.pos = "stack",
-                              # sort.frq =  "asc",
-                               #show.ci = TRUE,
-                               wrap.labels = 40,
-                               show.total = FALSE,
-                               show.summary = FALSE,
-                               show.prc = FALSE,
-                               summary.pos = "r",
-                               coord.flip = TRUE) +
-        
-        unhcrthemes::theme_unhcr(font_size = 12,
-                                # grid = "Y", axis = "X", axis_title = "y"
-                                  grid = "X",  axis = "Y",  axis_title = "X"
-                                 ) + 
-        ## and the chart labels
-        labs(title = stringr::str_wrap(paste0(varlab) , 70),
-             subtitle = paste0("Cruzado con ", crosslab),
-             x = "",
-             y = "",
-             caption = "Fuente:  ENPOVE, https://proyectos.inei.gob.pe/microdatos/")
-    } else {
-      
-      
-      ## Print an histogram
-      p <-   sjPlot::plot_grpfrq(var.cnt = data_roster[[i]],
-                                 var.grp = data_roster[[cross]],
-                                 type = "bar",
-                                 weight.by = weight,
-                                 # sort.frq =  "asc",
-                                 # bar.pos = "stack",
-                                 wrap.labels = 40,
-                                 show.summary = FALSE,
-                                 show.prc = FALSE,
-                                 show.values = FALSE,
-                                 show.n = FALSE) +
-        
-        unhcrthemes::theme_unhcr(font_size = 12,
-                                 grid = "Y", 
-                                 axis = "X", 
-                                 axis_title = FALSE) + 
-        ## and the chart labels
-        labs(title = stringr::str_wrap(paste0(varlab) , 70),
-             subtitle = paste0("Cruzado con ",crosslab),
-             x = "",
-             y = "",
-             caption = "Fuente: ENPOVE, https://proyectos.inei.gob.pe/microdatos/")
-    }
-    print(p)
-    #ggsave( paste0("plot/",cross," - ", i, "-",var, ".png"),  plot =  p, device = "png", width = 24, height = 16, units = "cm")
-  } else {
-    cat(paste0("Un solo valor para ", var, "\n"))
-  }
-}
-
-```
  
-
-## a partir de aqui guardo ad hoc objects por encuesta 
-
 # Multidimensional Poverty Index
 
 
@@ -1004,29 +912,31 @@ for (i in 5:ncol(data_roster)) {
 mpi_result <- df_household |>
   compute_mpi(deprivation_profile)
 
+
+## Index but not weighted
+# mpi_result$index
+
 ```
 
 
 
-```{r}
-mpi_result$index
-```
+ 
 
 
 ```{r, echo=F}
-# mpi_result$index |>
-#   gt::gt() |>
-#   gt::tab_header(
-#     title = 'MPI Results using 33% Poverty Cutoff'
-#   ) |>
-#   gt::fmt_number(
-#     columns = 2:4,
-#     decimals = 3
-#   ) |>
-#   gt::tab_options(
-#     table.width = '100%',
-#     table.font.size = 12,
-#   )
+mpi_result$index |>
+  gt::gt() |>
+  gt::tab_header(
+    title = 'MPI Results using 33% Poverty Cutoff'
+  ) |>
+  gt::fmt_number(
+    columns = 2:4,
+    decimals = 3
+  ) |>
+  gt::tab_options(
+    table.width = '100%',
+    table.font.size = 12,
+  )
 ```
 
 ## Contribution by dimension
