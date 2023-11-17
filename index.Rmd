@@ -584,7 +584,7 @@ df_household_roster <- df_household_roster  |>
 
 #### Borramos las filas donde la encuesta no llegó a su fin
 df_household_roster <- df_household_roster  |>
-  filter(RESFIN <3)
+  filter(RESFIN <2)
 
 #### Filtramos fuera del análisis las personas que no migraron de Venezuela*.
 df_household_roster <- df_household_roster  |>
@@ -594,7 +594,7 @@ df_household_roster <- df_household_roster  |>
 
 # Household Roster
 
-```{r df_household_roster preprocessing, echo=FALSE, cache = TRUE}
+```{r df_household_roster , echo=FALSE, cache = TRUE}
 
 #### Data Analysis ########################################
 # 0: Hay necesidad
@@ -619,9 +619,18 @@ deprivation_profile$nutrition <- df_household_roster |>
   )
 
 ##### INDICADOR 2: Access to health care services when needed (en el último mes) P405<7 & P406>4
+
+# Creción de variable de apoyo
+df_household_roster <- df_household_roster |>
+          dplyr::mutate(P406 = dplyr::case_when(
+            P406_1 == 1 | P406_2 == 1 |
+            P406_3 == 1 | P406_4 == 1 | 
+            P405_7 == 1 ~ 1,   
+            TRUE ~ 0   ) )
+
 df_household_roster <- df_household_roster |>
           dplyr::mutate(child_mortality = dplyr::case_when(
-            P406_1 %in% c(1:4) ~ 1,   TRUE ~ 0   ) )
+           P406 == 1 ~ 1,   TRUE ~ 0   ) )
 df_household_roster$child_mortality  <- labelled::labelled(df_household_roster$child_mortality,
   labels = c( 'Hay necesidad' = 0, 'No hay necesidad/vulnerabilidad' =1 ),
   label = "INDICADOR 10: Respuesta ante enfermedad ")
@@ -629,7 +638,7 @@ df_household_roster$child_mortality  <- labelled::labelled(df_household_roster$c
 deprivation_profile$child_mortality <- df_household_roster |>
   define_deprivation(
     .indicator = child_mortality,
-    .cutoff = P406_1 > 4,
+    .cutoff = P406 == 0 ,
     .collapse = TRUE
   )
 
@@ -659,7 +668,10 @@ df_household_roster<- df_household_roster  |>
 
 df_household_roster <- df_household_roster |>
           dplyr::mutate(year_schooling = dplyr::case_when(
-            P205_A >17 & (P501 %in% c(6:11) | P501B %in% c(6:12)) ~ 1,   TRUE ~ 0   ) )
+            (P205_A < 18 | is.na(P205_A)) |
+            (P205_A > 17 & (P501 %in% c(6:11) | P501B %in% c(6:12))) 
+            ~ 1, TRUE ~ 0   ) )
+
 df_household_roster$year_schooling  <- labelled::labelled(df_household_roster$year_schooling,
   labels = c( 'Hay necesidad' = 0, 'No hay necesidad/vulnerabilidad' =1 ),
   label = "INDICADOR 11: Escolaridad en adultos del hogar (Mayores de edad cuyo nivel educativo es igual o superior a secundaria completa) ")
@@ -667,14 +679,15 @@ df_household_roster$year_schooling  <- labelled::labelled(df_household_roster$ye
 deprivation_profile$year_schooling <- df_household_roster |>
   define_deprivation(
     .indicator = year_schooling,
-    .cutoff = (P501 < 6 | P501B < 6) & P205_A>17,
+    .cutoff = year_schooling == 0,
     .collapse = TRUE
   )
 
 ##### INDICADOR 2: Asistencia a la escuela P205 < 18 & no asiste
 df_household_roster <- df_household_roster |>
           dplyr::mutate(school_attendance = dplyr::case_when(
-            P205_A > 2 & P205_A < 18 & P506 == 1 ~ 1,   TRUE ~ 0   ) )
+            (P205_A > 18 | is.na(P205_A)) | 
+            (P205_A > 2 & P205_A < 18 & P506 == 1) ~ 1,   TRUE ~ 0   ) )
 df_household_roster$school_attendance  <- labelled::labelled(df_household_roster$school_attendance,
   labels = c( 'Hay necesidad' = 0, 'No hay necesidad/vulnerabilidad' =1 ),
   label = "INDICADOR 12: Escolaridad infantil (NNA entre 3 y 18 años matriculados en la escuela")
@@ -682,7 +695,7 @@ df_household_roster$school_attendance  <- labelled::labelled(df_household_roster
 deprivation_profile$school_attendance <- df_household_roster |>
   define_deprivation(
     .indicator = school_attendance,
-    .cutoff = P205_A < 18 & P205_A > 2,
+    .cutoff = school_attendance == 0,
     .collapse = TRUE
   )
 
