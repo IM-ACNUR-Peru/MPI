@@ -4,8 +4,6 @@ The Multidimensional Poverty Index (MPI) developed by Sabina Alkire and James Fo
 
 This analysis is performed on the ENPOVE data available here: https://proyectos.inei.gob.pe/microdatos/ 
 
-For Household - 
-https://proyectos.inei.gob.pe/iinei/srienaho/descarga/SPSS/769-Modulo1711.zip
+For Household: https://proyectos.inei.gob.pe/iinei/srienaho/descarga/SPSS/769-Modulo1711.zip
 
-For household members: 
-https://proyectos.inei.gob.pe/iinei/srienaho/descarga/SPSS/769-Modulo1721.zip
+For household members: https://proyectos.inei.gob.pe/iinei/srienaho/descarga/SPSS/769-Modulo1721.zip
