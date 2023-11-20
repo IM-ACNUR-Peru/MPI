@@ -80,12 +80,19 @@ read.csv(specs_file) |>
   gt::tab_footnote('Source: Alkire, S., Kanagaratnam, U. and Suppa, N. (2020). ‘The global Multidimensional Poverty Index (MPI): 2020 revision’, OPHI MPI Methodological Note 49, Oxford Poverty and Human Development Initiative, University of Oxford.')
 ```
 
-# Household Preprocessing
+# Household preprocessing ENPOVE 2022
 
-```{r  df_household preprocessing}
+```{r  df_household preprocessing ENPOVE 2022}
 ##Preprocessing
 
-df_household <- read_sav(here::here("data-raw","ENPOVE2022_V_100 Características de la vivienda y del hogar.sav"))
+#ENPOVE 2022
+#df_household <- read_sav(here::here("data-raw","ENPOVE2022_V_100 Características de la vivienda y del hogar.sav"))
+
+#ENPOVE 2018
+df_household <- read_sav(here::here("data-raw","ENPOVE_Capitulo 100 - Carctaerísticas de la Vivienda y del Hogar.sav.sav"))
+
+#ENAHO 2022
+#df_household <- read_sav(here::here("data-raw","ENPOVE2022_V_100 Características de la vivienda y del hogar.sav"))
 
 # names(df_household)
 # df_household |> dplyr::select(CIUDAD) |> dplyr::distinct() |> dplyr::pull()
@@ -95,7 +102,7 @@ df_household <- read_sav(here::here("data-raw","ENPOVE2022_V_100 Característica
 
 df_householda <- df_household 
 
-######## CREATE PCODE AT ADMIN 3 LEVEL
+######## CREATE PCODE AT ADMIN 3 LEVEL. ONLY USED FOR ENPOVE 2022
 df_household <- df_household  |>
   dplyr::mutate(CCDD = ifelse(nchar(CCDD) < 2, paste0("0", CCDD), CCDD))
 
@@ -125,7 +132,7 @@ df_household <- df_household  |>
 
 ```
 
-# Household
+# Household ENPOVE 2022
 
 ```{r  df_household}
 
@@ -546,7 +553,7 @@ for (i in 6:ncol(data)) {
 
 ```
  
-# Household Roster Preprocessing
+# Household roster preprocessing ENPOVE 2022 
 
 ```{r df_household_roster, echo=FALSE, cache=FALSE}
 
@@ -584,7 +591,7 @@ df_household_roster <- df_household_roster  |>
 
 #### Borramos las filas donde la encuesta no llegó a su fin
 df_household_roster <- df_household_roster  |>
-  filter(RESFIN <2)
+  filter(RESFIN <3)
 
 #### Filtramos fuera del análisis las personas que no migraron de Venezuela*.
 df_household_roster <- df_household_roster  |>
@@ -592,7 +599,7 @@ df_household_roster <- df_household_roster  |>
 
 ```
 
-# Household Roster
+# Household roster ENPOVE 2022
 
 ```{r df_household_roster , echo=FALSE, cache = TRUE}
 
@@ -1002,6 +1009,361 @@ for (i in 5:ncol(data_roster)) {
 }
 
 ```
+
+#Household preprocessing ENPOVE 2018
+ 
+```{r}
+##Preprocessing
+
+#ENPOVE 2018
+df_household <- read_sav(here::here("data-raw","ENPOVE_Capitulo 100 - Carctaerísticas de la Vivienda y del Hogar.sav.sav"))
+
+##PENDING:
+#Step 1: probablemente hay que filtrar por P207 == 1 y hace un group by CODIGO_HOGAR y quedarme con los máximos. Necesito aquí el N de miembros del hogar (nmiembrosrecod) + datos sobre las habitaciones (P105C) y dormitorios  (p106uso)
+
+#df_household_ <- read_sav(here::here("data-raw","ENPOVE_Capitulo 200 - Carctaerísticas de los Residentes del Hogar.sav.sav"))
+
+#Step 2: luego debo hacer un merge de ambos dataframes y guardarlo sobre df_household y continuar
+
+# names(df_household)
+# df_household |> dplyr::select(CIUDAD) |> dplyr::distinct() |> dplyr::pull()
+
+## Explore all content
+#df_household |>  sjPlot::view_df()
+
+df_householda <- df_household 
+
+######## CREATE UNIQUE HOUSEHOLD ID
+df_household <- df_household  |>
+  dplyr::mutate(uuid = CODIGO_HOGAR)  |>
+  dplyr::mutate(class = CIUDADES_DE_ESTUDIO)
+
+
+######## DEPURACIÓN DE FILAS 
+#### Filtramos fuera del análisis las viviendas donde no vivían personas de Venezuela*.
+#df_household <- df_household  |>
+#  filter(P15 == 1)
+#### Borramos las filas donde la encuesta no llegó a su fin
+df_household <- df_household  |>
+  filter(RESULTADO_FINAL_VIVIENDA <3)
+
+
+```
+ 
+ 
+ 
+# Household ENPOVE 2018
+
+```{r  df_household ENPOVE 2018}
+
+##### Data Analysis ########################################
+#  'Hay necesidad' = 0, 'No hay necesidad/vulnerabilidad' =1
+
+######    DIMENSIÓN 3: SERVICIOS PÚBLICOS ####################
+
+##### INDICADOR 1:PORCENTAJE DE HOGARES CON NECESIDADES DE AGUA
+
+##Necesidad de agua = Hogares que no cuentan con acceso a agua a través de red pública dentro de la vivienda
+# table(df_household$P108_1, useNA = "ifany")
+
+df_household <- df_household |>
+          dplyr::mutate(drinking_water = dplyr::case_when(
+            P110 == 1 ~ 1,   TRUE ~ 0   ) )
+df_household$drinking_water  <- labelled::labelled(df_household$drinking_water,
+  labels = c( 'Hay necesidad' = 0, 'No hay necesidad/vulnerabilidad' =1 ),
+  label = "INDICADOR 1: DRINKING WATER")
+
+deprivation_profile$drinking_water <- df_household |>
+  define_deprivation(
+    .indicator = drinking_water,
+    .cutoff = P110 == 1
+  )
+
+# ##Necesidad de agua = Hogares que no cuentan con acceso a agua a través de red pública
+# df_household <- df_household |>
+#           dplyr::mutate(drinking_waterv2 = dplyr::case_when(
+#             P110 < 3 ~ 1,   TRUE ~ 0   ) )
+# df_household$drinking_waterv2  <- labelled::labelled(df_household$drinking_waterv2,
+#   labels = c( 'Hay necesidad' = 0, 'No hay necesidad/vulnerabilidad' =1 ),
+#   label = "INDICADOR 1:PORCENTAJE DE HOGARES CON NECESIDADES DE AGUA v2")
+
+
+##### INDICADOR 2:PORCENTAJE DE HOGARES CON NECESIDADES DE SANEAMIENTO
+
+##Necesidad de saneamiento = Hogares que no cuentan con conexión a desagüe dentro de la vivienda 
+df_household <- df_household |>
+          dplyr::mutate(sanitation = dplyr::case_when(
+            P112 == 1 ~ 1,   TRUE ~ 0   ) )
+df_household$sanitation  <- labelled::labelled(df_household$sanitation,
+  labels = c( 'Hay necesidad' = 0, 'No hay necesidad/vulnerabilidad' =1 ),
+  label = "INDICADOR 2: SANITATION")
+
+deprivation_profile$sanitation <- df_household |>
+  define_deprivation(
+    .indicator = sanitation,
+    .cutoff = P112 == 1
+  )
+
+# ##Necesidad de saneamiento = Hogares que no cuentan con conexión a desagüe
+# df_household <- df_household |>
+#           dplyr::mutate(sanitationv2 = dplyr::case_when(
+#             P112 < 3 ~ 1,   TRUE ~ 0   ) )
+# df_household$sanitationv2  <- labelled::labelled(df_household$sanitationv2,
+#   labels = c( 'Hay necesidad' = 0, 'No hay necesidad/vulnerabilidad' =1 ),
+#   label = "INDICADOR 2:PORCENTAJE DE HOGARES CON NECESIDADES DE SANEAMIENTO v2")
+
+
+##### INDICADOR 3: PORCENTAJE DE HOGARES CON NECESIDADES DE ELECTRICIDAD
+
+##Necesidad de electricidad = Hogares que no cuentan con acceso a alumbrado/electricidad
+df_household <- df_household |>
+          dplyr::mutate(electricity = dplyr::case_when(
+            P111 == 1 ~ 1,   TRUE ~ 0   ) )
+df_household$electricity  <- labelled::labelled(df_household$electricity,
+  labels = c( 'Hay necesidad' = 0, 'No hay necesidad/vulnerabilidad' =1 ),
+  label = "INDICADOR 3: ELECTRICITY")
+
+deprivation_profile$electricity <- df_household |>
+  define_deprivation(
+    .indicator = electricity,
+    .cutoff = P111 == 1
+  )
+
+#######    DIMENSIÓN 4: CONDICIONES DE VIVIENDA ####################
+
+##### INDICADOR 1: ADEQUATE FLOORING
+
+## Tipo de Piso## 
+#unimproved floor when earth,sand,clay,mud, dung or other, as in UNHCR RMS indicator DWE02
+# Se utilizó los hogares que tengan pisos de: 6) Tierra o 7) Otro material
+
+df_household <- df_household |>
+          dplyr::mutate(ind04_01 = dplyr::case_when(
+            P104 %in% c(1:5) ~ 1,   TRUE ~ 0   ) )
+df_household$ind04_01  <- labelled::labelled(df_household$ind04_01,
+  labels = c( 'Hay necesidad' = 0, 'No hay necesidad/vulnerabilidad' =1 ),
+  label = "INDICADOR 1: ADEQUATE FLOORING")
+
+
+##### INDICADOR 2: ADEQUATE WALLS
+
+## Tipo de Pared## 
+#improved wall: cement,stone,bricks,cement blocks, covered adobe, wood planks, as in UNHCR RMS indicator DWE04. 
+#Se utilizó los hogares que tengan paredes de: 4) Tapia; 5) Quincha (caña con barro); 6) Piedra con barro; 7) Madera (pona, tornillo, etc.); 8) Estera/triplay/calamina y 9) Otro material
+
+df_household <- df_household |>
+          dplyr::mutate(ind04_02 = dplyr::case_when(
+            P102 %in% c(1:3) ~ 1,   TRUE ~ 0   ) )
+df_household$ind04_02  <- labelled::labelled(df_household$ind04_02,
+  labels = c( 'Hay necesidad' = 0, 'No hay necesidad/vulnerabilidad' =1 ),
+  label = "INDICADOR 2: ADEQUATE WALLS")
+
+## VERSION 2
+#Se utilizó los hogares que tengan paredes de: 3) Adobe; 4) Tapia; 5) Quincha (caña con barro); 6) Piedra con barro; 7) Madera (pona, tornillo, etc.); 8) Estera/triplay/calamina y 9) Otro material
+
+df_household <- df_household |>
+          dplyr::mutate(ind04_02v2 = dplyr::case_when(
+            P102 %in% c(1:2) ~ 1,   TRUE ~ 0   ) )
+df_household$ind04_02v2  <- labelled::labelled(df_household$ind04_02v2,
+  labels = c( 'Hay necesidad' = 0, 'No hay necesidad/vulnerabilidad' =1 ),
+  label = "INDICADOR 2: ADEQUATE WALLS v2")
+
+## VERSION 3
+#Se utilizó los hogares que tengan paredes de: 2) Piedra, sillar con cal o cemento; 3) Adobe; 4) Tapia; 5) Quincha (caña con barro); 6) Piedra con barro; 7) Madera (pona, tornillo, etc.); 8) Estera/triplay/calamina y 9) Otro material
+
+df_household <- df_household |>
+          dplyr::mutate(ind04_02v3 = dplyr::case_when(
+            P102 == 1 ~ 1,   TRUE ~ 0   ) )
+df_household$ind04_02v3  <- labelled::labelled(df_household$ind04_02v3,
+  labels = c( 'Hay necesidad' = 0, 'No hay necesidad/vulnerabilidad' =1 ),
+  label = "INDICADOR 2: ADEQUATE WALLS v3")
+
+##### INDICADOR 3: ADEQUATE ROOFS
+
+## Tipo de Techo## 
+#unimproved roof all options except metal, wood, ceramic tiles, cement, roofing shingles/sheets, as in UNHCR RMS indicator DWE03.
+#Se utilizó los hogares que tengan techos de: 5) Caña o estera con torta de barro o cemento; 6) Triplay/estera/carrizo; 7) Paja, hojas de palmera, etc y 8) Otro material
+
+df_household <- df_household |>
+          dplyr::mutate(ind04_03 = dplyr::case_when(
+            P103 %in% c(1:4) ~ 1,   TRUE ~ 0   ) )
+df_household$ind04_03  <- labelled::labelled(df_household$ind04_03,
+  labels = c( 'Hay necesidad' = 0, 'No hay necesidad/vulnerabilidad' =1 ),
+  label = "INDICADOR 3: ADEQUATE ROOFS")
+
+## VERSION 2
+#Se utilizó los hogares que tengan techos de: 4) Planchas de calamina, fibra de cemento o similares; 5) Caña o estera con torta de barro o cemento; 6) Triplay/estera/carrizo; 7) Paja, hojas de palmera, etc y 8) Otro material
+df_household <- df_household |>
+          dplyr::mutate(ind04_03v2 = dplyr::case_when(
+            P103 %in% c(1:3) ~ 1,   TRUE ~ 0   ) )
+df_household$ind04_03v2  <- labelled::labelled(df_household$ind04_03v2,
+  labels = c( 'Hay necesidad' = 0, 'No hay necesidad/vulnerabilidad' =1 ),
+  label = "INDICADOR 3: ADEQUATE ROOFS v2")
+
+
+## INDICADOR 4: HOUSING CONDITIONS. The household has inadequate housing materials in any of the three components: floor, roof, or walls.
+
+df_household <- df_household |>
+          dplyr::mutate(housing = dplyr::case_when(
+            ind04_01 == 1 & ind04_02 == 1 & ind04_03 == 1 ~ 1,   
+            TRUE ~ 0   ) )
+df_household$housing  <- labelled::labelled(df_household$housing,
+  labels = c( 'Hay necesidad' = 0, 'No hay necesidad/vulnerabilidad' =1 ),
+  label = "INDICADOR 4: HOUSING CONDITIONS (household has inadequate housing materials in any of the three components: floor, roof, or walls)")
+
+## VERSION 2
+# df_household <- df_household |>
+#           dplyr::mutate(housing = dplyr::case_when(
+#             (ind04_01 ==1 | ind04_02v2 ==1 | ind04_03 ==1) ~ 1,   
+#             TRUE ~ 0   ) )
+# df_household$housing  <- labelled::labelled(df_household$housing,
+#   labels = c( 'Hay necesidad' = 0, 'No hay necesidad/vulnerabilidad' =1 ),
+#   label = "INDICADOR x:The household has inadequate housing materials in any of the three components: floor, roof, or walls.")
+
+## VERSION 3
+# df_household <- df_household |>
+#           dplyr::mutate(housing = dplyr::case_when(
+#             (ind04_01 ==1 | ind04_02v2 ==1 | ind04_03v2 ==1) ~ 1,   
+#             TRUE ~ 0   ) )
+# df_household$housing  <- labelled::labelled(df_household$housing,
+#   labels = c( 'Hay necesidad' = 0, 'No hay necesidad/vulnerabilidad' =1 ),
+#   label = "INDICADOR x:The household has inadequate housing materials in any of the three components: floor, roof, or walls.")
+
+## VERSION 4
+# df_household <- df_household |>
+#           dplyr::mutate(housing = dplyr::case_when(
+#             (ind04_01 ==1 | ind04_02v3 ==1 | ind04_03 ==1) ~ 1,   
+#             TRUE ~ 0   ) )
+# df_household$housing  <- labelled::labelled(df_household$housing,
+#   labels = c( 'Hay necesidad' = 0, 'No hay necesidad/vulnerabilidad' =1 ),
+#   label = "INDICADOR x:The household has inadequate housing materials in any of the three components: floor, roof, or walls.")
+
+## VERSION 5
+# df_household <- df_household |>
+#           dplyr::mutate(housing = dplyr::case_when(
+#             (ind04_01 ==1 | ind04_02v3 ==1 | ind04_03v2 ==1) ~ 1,   
+#             TRUE ~ 0   ) )
+# df_household$housing  <- labelled::labelled(df_household$housing,
+#   labels = c( 'Hay necesidad' = 0, 'No hay necesidad/vulnerabilidad' =1 ),
+#   label = "INDICADOR x:The household has inadequate housing materials in any of the three components: floor, roof, or walls.")
+
+deprivation_profile$housing <- df_household |>
+  define_deprivation(
+    .indicator = housing,
+    .cutoff = housing == 1
+  )
+
+##### INDICADOR 5: OVERCROWDING 
+
+##Hacinamiento
+# Calculate crowding index - overcrowded when more than 2.5 persons per room (using number of rooms in the Household (P105))
+df_household <-  df_household  |>
+  dplyr::mutate(crowding = P15_N/P105 )  |>
+  dplyr::mutate(ind04_04 = dplyr::case_when( 
+    crowding< 2.5 ~ 1, 
+    TRUE ~ 0)
+  )
+df_household$ind04_04  <- labelled::labelled(df_household$ind04_04,
+  labels = c( 'Hay necesidad' = 0, 'No hay necesidad/vulnerabilidad' =1 ),
+  label = "INDICADOR 5: OVERCROWDING ")
+
+
+# Calculate crowding index - overcrowded when more than 2.5 persons per room (using number of bedrooms in the Household (P106))
+df_household <-  df_household  |>
+  dplyr::mutate(P106vf = dplyr::case_when(
+    P106 > 0 ~ P106, TRUE ~ P105))  |>
+  dplyr::mutate(crowdingv2 = P15_N/P106vf
+  )  |>
+  dplyr::mutate(ind04_04v2 = dplyr::case_when(
+    crowdingv2< 2.5 ~ 1, TRUE ~ 0)
+  )
+
+df_household$ind04_04v2  <- labelled::labelled(df_household$ind04_04v2,
+  labels = c( 'Hay necesidad' = 0, 'No hay necesidad/vulnerabilidad' =1 ),
+  label = "INDICADOR 5: OVERCROWDING v2")
+
+
+##### INDICADOR 6: COOKING FUEL
+#The household cooks with dung, wood, charcoal or coal
+df_household <- df_household |>
+          dplyr::mutate(cooking_fuel = dplyr::case_when(
+            P109 %in% c(1:3) ~ 1,   TRUE ~ 0   ) )
+df_household$cooking_fuel  <- labelled::labelled(df_household$cooking_fuel,
+  labels = c( 'Hay necesidad' = 0, 'No hay necesidad/vulnerabilidad' =1 ),
+  label = "INDICADOR 6: COOKING FUEL")
+
+deprivation_profile$cooking_fuel <- df_household |>
+  define_deprivation(
+    .indicator = cooking_fuel,
+    .cutoff = P109 < 3
+  )
+
+##### INDICADOR 7: ASSETS
+
+#The household does not own a car or truck and does not own more than one of the following assets: radio, television, telephone, computer, animal cart, bicycle, motorbike or refrigerator
+
+#Adaptamos el cálculo de este indicador. Si los hogares no tienen más de uno de los siguientes activos: 1) Radio, 2) TV, 6) Teleofono celular or 7) Telefono fijo, 5) Computadora/laptop/tableta, 9) Refrigeradora/congeladora
+
+# PREPROCESSING
+df_household <- df_household  |>
+  dplyr::mutate(P110_1 = ifelse(P110_1==2,0,P110_1)) |>
+  dplyr::mutate(P110_2 = ifelse(P110_2==2,0,P110_2)) |>
+  dplyr::mutate(P110_3 = ifelse(P110_3==2,0,P110_3)) |>
+  dplyr::mutate(P110_4 = ifelse(P110_4==2,0,P110_4)) |>
+  dplyr::mutate(P110_5 = ifelse(P110_5==2,0,P110_5)) |>
+  dplyr::mutate(P110_6 = ifelse(P110_6==2,0,P110_6)) |>
+  dplyr::mutate(P110_7 = ifelse(P110_7==2,0,P110_7)) |>
+  dplyr::mutate(P110_8 = ifelse(P110_8==2,0,P110_8)) |>
+  dplyr::mutate(P110_9 = ifelse(P110_9==2,0,P110_9)) |>
+  dplyr::mutate(P110_10 = ifelse(P110_10==2,0,P110_10)) |>
+  dplyr::mutate(P110_11 = ifelse(P110_11==2,0,P110_11)) |>
+  dplyr::mutate(P110_12 = ifelse(P110_12==2,0,P110_12)) |>
+  dplyr::mutate(P110_13 = ifelse(P110_13==2,0,P110_13))
+
+# Creación de variable tenencia de algún tipo de teléfono (fijo o móvil)
+df_household <- df_household |>
+          dplyr::mutate(P110_14 = dplyr::case_when(
+            P110_6 == 1 | P110_7 == 1 ~ 1,   TRUE ~ 0   ) )
+
+# Creación de un indicador compuesto que resume la tenencia de: 1) TV; 5) Computadora / laptop / tableta; 14) Teléfono (fijo o móvil); 8) Radio; 9) Refrigeradora/congeladora
+df_household <- df_household  |>
+  dplyr::mutate(P110 = P110_1 + P110_5 + P110_14 + P110_8 + P110_9)
+
+#Household does not owns 3 or more items
+df_household <- df_household |>
+          dplyr::mutate(assets = dplyr::case_when(
+            P110 > 2 ~ 1,   TRUE ~ 0   ) )
+df_household$assets  <- labelled::labelled(df_household$assets,
+  labels = c( 'Hay necesidad' = 0, 'No hay necesidad/vulnerabilidad' =1 ),
+  label = "INDICADOR 7: ASSETS (Household does not owns 3 or more items)") 
+
+deprivation_profile$assets <- df_household |>
+  define_deprivation(
+    .indicator = assets,
+    .cutoff = P110 <=2
+  )
+
+#Household does not owns 2 or more items
+df_household <- df_household |>
+          dplyr::mutate(assetsv2 = dplyr::case_when(
+            P110 > 3 ~ 1,   TRUE ~ 0   ) )
+df_household$assetsv2  <- labelled::labelled(df_household$assetsv2,
+  labels = c( 'Hay necesidad' = 0, 'No hay necesidad/vulnerabilidad' =1 ),
+  label = "INDICADOR 7: ASSETS v2 (Household does not owns 2 or more items)") 
+
+##### INDICADOR 8: TIPO DE VIVIENDA
+
+## Tipo de vivienda## 
+#Only apartment and house, as in UNHCR RMS indicator DWE01
+#Se utilizó los hogares cuyo tipo de vivienda no sean: 1) Casa independiente o 2) Departamento en edificio
+df_household <- df_household |>
+          dplyr::mutate(ind04_07 = dplyr::case_when(
+            P101 %in% c(1:2) ~ 1,   TRUE ~ 0   ) )
+df_household$ind04_07  <- labelled::labelled(df_household$ind04_07,
+  labels = c( 'Hay necesidad' = 0, 'No hay necesidad/vulnerabilidad' =1 ),
+  label = "INDICADOR 8: TIPO DE VIVIENDA") 
+
+ 
  
 
 ## a partir de aqui guardo ad hoc objects por encuesta 
@@ -1013,7 +1375,13 @@ for (i in 5:ncol(data_roster)) {
 
 # ----------------------------------
 # Compute the MPI
-mpi_result <- df_household |>
+mpi_result_enpove2022 <- df_household |>
+  compute_mpi(deprivation_profile)
+
+mpi_result_enpove2018 <- df_household |>
+  compute_mpi(deprivation_profile)
+
+mpi_result_enaho2022 <- df_household |>
   compute_mpi(deprivation_profile)
 
 ```
