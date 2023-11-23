@@ -130,61 +130,6 @@ plot_indic <- function(indic, cross, weight){
 }
 ```
 
-
-```{r function-plot_mpi}
-#' plot_mpi
-#' 
-#' Plotting functions to display numeric value
-#' 
-#' @param indic the index vector
-#' @param cross the crosstab variable vector
-#' @param weight the weight vector
-#' 
-#' @import ggplot2
-#' @import sjPlot
-#' @import sjlabelled
-#' @import unhcrthemes
-#' @return a ggplot2 object
-#' 
-
-plot_mpi <- function(mpi, cross, weight){
-  
-  p <- sjPlot::plot_grpfrq(var.cnt = mpi,
-                    var.grp = cross,
-                    facet.grid = TRUE,
-                    type = "bar",
-                    weight.by = weight,
-                    # bar.pos = "stack",
-                    # sort.frq =  "asc",
-                    #show.ci = TRUE,
-                    # wrap.labels = 40,
-                    #show.total = FALSE,
-                    show.summary = FALSE,
-                    show.prc = FALSE,
-                    show.values = FALSE,
-                    show.n = FALSE) + 
-  ## and the chart labels
-  labs(title =  sjlabelled::get_label(mpi),
-       subtitle = paste0("By ",sjlabelled::get_label(cross) ),
-       x = "",
-       y = "",
-       caption = "Source: ENPOVE 2022 inei.gob.pe microdatos"
-  ) +
-  ## Add UNHCR Theme
-  unhcrthemes::theme_unhcr(font_size = 12,
-                           # grid = "Y", axis = "X", axis_title = "y"
-                           grid = "Y",  axis = "Y",  axis_title = "X"
-  ) 
-  return(p)  
-}
-```
- 
-
-   
-  
- 
-
-
 ```{r  df_household_preprocessing}
 ##Preprocessing
 
@@ -621,7 +566,6 @@ df_household_roster <- df_household_roster  |>
 
 ```
 
- 
 ```{r df_household_roster, echo=FALSE, cache = FALSE}
 
 
@@ -969,9 +913,60 @@ deprivation_profile$school_attendance <- df_household_roster |>
 
 ```
 
- 
 # Multidimensional Poverty Index
 
+
+```{r function-plot_mpi}
+#' plot_mpi
+#' 
+#' Plotting functions to display numeric value
+#' 
+#' @param indic the index vector
+#' @param cross the crosstab variable vector
+#' @param weight the weight vector
+#' 
+#' @import ggplot2
+#' @import sjPlot
+#' @import sjlabelled
+#' @import unhcrthemes
+#' @return a ggplot2 object
+#' 
+
+plot_mpi <- function(mpi, cross, weight){
+  
+  p <- sjPlot::plot_grpfrq(var.cnt = mpi,
+                    var.grp = cross,
+                    facet.grid = TRUE,
+                    type = "bar",
+                    weight.by = weight,
+                    # bar.pos = "stack",
+                    # sort.frq =  "asc",
+                    #show.ci = TRUE,
+                    # wrap.labels = 40,
+                    #show.total = FALSE,
+                    show.summary = FALSE,
+                    show.prc = FALSE,
+                    show.values = FALSE,
+                    show.n = FALSE) + 
+    # adjut the scale
+   # scale_x_discrete( n.breaks = 10 #breaks = waiver()
+   #                   ) +
+  ## and the chart labels
+  labs(title =  sjlabelled::get_label(mpi),
+       subtitle = paste0("By ",sjlabelled::get_label(cross) ),
+       x = "",
+       y = "",
+       caption = "Source: ENPOVE 2022 inei.gob.pe microdatos" ) +
+  ## Add UNHCR Theme
+  unhcrthemes::theme_unhcr(font_size = 12,
+                           # grid = "Y", axis = "X", axis_title = "y"
+                           grid = "Y",  axis = "Y",  axis_title = "X" ) 
+  return(p)  
+}
+```
+ 
+
+  
 
 
 ```{r}
@@ -1013,18 +1008,18 @@ mpi_deprivation_matrix_k_80 <- mpi_result[["deprivation_matrix"]][["k_80"]] |> j
 
 #mpi_deprivation_matrix_censored <- mpi_result[["deprivation_matrix"]][["censored"]] 
 
-df_household <- df_household |>
+df_household2 <- df_household |>
   dplyr::left_join( mpi_deprivation_matrix_uncensored |> dplyr::select(uuid, deprivation_score ), by = c("uuid"))
 ## Index but not weighted
 # mpi_result$index
 
-df_household$deprivation_score  <- labelled::labelled(df_household$deprivation_score,
+df_household2$deprivation_score  <- labelled::labelled(df_household2$deprivation_score,
   label = "Deprivation Score")
 
 
-plot_mpi(mpi = df_household$deprivation_score, 
-        cross = df_household$class, 
-        weight = df_household$factorfinal)
+plot_mpi(mpi = df_household2$deprivation_score, 
+        cross = df_household2$class, 
+        weight = df_household2$factorfinal)
 
 
 ```
