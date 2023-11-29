@@ -745,7 +745,7 @@ df_household_roster <- df_household_roster  |>
 
 # Household roster ENPOVE 2022
 
-```{r df_household_roster, echo=FALSE, cache = FALSE}
+```{r df_household_roster, echo=FALSE, cache=FALSE}
 
 #### Data Analysis ########################################
 # 0: Hay necesidad
@@ -1096,7 +1096,7 @@ deprivation_profile$school_attendance <- df_household_roster |>
 ```{r HogarRostViz}
 # dput(names(df_household))
 data_roster <- df_household_roster |>
-        dplyr::select( CIUDAD, factorfinal , uuid,
+        dplyr::select(CIUDAD, factorfinal , uuid,
                        nutrition, child_mortality, year_schooling, school_attendance
 
 )
@@ -1247,38 +1247,194 @@ plot_mpi(mpi = df_household$deprivation_score,
 ```{r df_household_preprocessing_enpove_2018}
 ##Preprocessing
 
-#ENPOVE 2018
-df_household <- read_sav(here::here("data-raw","ENPOVE_Capitulo 100 - Carctaerísticas de la Vivienda y del Hogar.sav.sav"))
+#The structure for ENPOVE 2018 is a bit different from ENPOVE 2022. No integrated database. The IDs for household and individuals have already been create and some extra preprocessing needs to be done in order to have the same fields as in ENPOVE 2022
 
-##PENDING:
-#Step 1: probablemente hay que filtrar por P207 == 1 y hace un group by CODIGO_HOGAR y quedarme con los máximos. 
-#Necesito aquí el N de miembros del hogar (nmiembrosrecod) + datos sobre las habitaciones (P105C) y dormitorios  (p106uso)
+#Loading ENPOVE 2018
+df_household_1 <- read_sav(here::here("data-raw","ENPOVE_Capitulo 100 - Carctaerísticas de la Vivienda y del Hogar.sav.sav"))
 
+df_household_2 <- read_sav(here::here("data-raw","ENPOVE_Capitulo 200 - Carctaerísticas de los Residentes del Hogar.sav.sav"))
 
-#df_household_ <- read_sav(here::here("data-raw","ENPOVE_Capitulo 200 - Carctaerísticas de los Residentes del Hogar.sav.sav"))
+#df_household_3 <- read_sav(here::here("data-raw","ENPOVE_Capitulo 300 - Situación Migratoria de la Persona.sav.sav"))
 
-#Step 2: luego debo hacer un merge de ambos dataframes y guardarlo sobre df_household y continuar
+df_household_4 <- read_sav(here::here("data-raw","ENPOVE_Capitulo 400 - Salud.sav.sav"))
 
-# names(df_household)
-# df_household |> dplyr::select(CIUDAD) |> dplyr::distinct() |> dplyr::pull()
+df_household_5 <- read_sav(here::here("data-raw","ENPOVE_Capitulo 500 - Educación.sav.sav"))
 
-## Explore all content
-#df_household |>  sjPlot::view_df()
-
-df_householda <- df_household 
-
-######## CREATE UNIQUE HOUSEHOLD ID
-df_household <- df_household  |>
-  dplyr::mutate(uuid = CODIGO_HOGAR)  |>
-  dplyr::mutate(class = CIUDADES_DE_ESTUDIO)
+df_household_6 <- read_sav(here::here("data-raw","ENPOVE_Capitulo 600 - Empleo.sav.sav"))
 
 ######## DEPURACIÓN DE FILAS 
-#### Filtramos fuera del análisis las viviendas donde no vivían personas de Venezuela*.
-#df_household <- df_household  |>
-#  filter(P15 == 1)
-#### Borramos las filas donde la encuesta no llegó a su fin
-df_household <- df_household  |>
-  filter(RESULTADO_FINAL_VIVIENDA <3)
+
+# We filter out of the analysis the homes where the survey was not completed.
+df_household_1 <- df_household_1  |>
+  rename(filter = `filter_$`)|>
+  dplyr::filter(RESULTADO_FINAL_VIVIENDA == 1)
+
+#when more than one household shares a residence the questions related to housing conditions are omitted and only registered for the first household. Then this information is filled for every household within the residence using "CODIGO_VIVIENDA"
+df_household_1 <- df_household_1  |>
+  group_by(CODIGO_VIVIENDA) |>
+  mutate(P101 = ifelse(is.na(P101), na.omit(P101)[1], P101)) |>
+  mutate(P102 = ifelse(is.na(P102), na.omit(P102)[1], P102)) |>
+  mutate(P103 = ifelse(is.na(P103), na.omit(P103)[1], P103)) |>
+  mutate(P104 = ifelse(is.na(P104), na.omit(P104)[1], P104)) |>
+  mutate(P105 = ifelse(is.na(P105), na.omit(P105)[1], P105)) |>
+  mutate(P106 = ifelse(is.na(P106), na.omit(P106)[1], P106)) |>
+  mutate(P107 = ifelse(is.na(P107), na.omit(P107)[1], P107)) |>
+  mutate(P105N = ifelse(is.na(P105N),na.omit(P105N)[1], P105N)) |> # this line fills the NA's this calculation that discretizes the number of rooms
+  ungroup()
+
+#bringing back the labels 
+df_household_1$P101  <- labelled::labelled(df_household_1$P101,
+  label = "TIPO DE VIVIENDA:")
+df_household_1$P102  <- labelled::labelled(df_household_1$P102,
+  label = "¿EL MATERIAL DE CONSTRUCCIÓN PREDOMINANTE EN LAS PAREDES EXTERIORES ES:")  
+df_household_1$P103  <- labelled::labelled(df_household_1$P103,
+  label = "¿EL MATERIAL DE CONSTRUCCIÓN PREDOMINANTE EN LOS TECHOS ES:")
+df_household_1$P104  <- labelled::labelled(df_household_1$P104,
+  label = "¿EL MATERIAL DE CONSTRUCCIÓN PREDOMINANTE EN LOS PISOS ES:")  
+df_household_1$P105  <- labelled::labelled(df_household_1$P105,
+  label = "¿CUÁNTAS HABITACIONES EN TOTAL TIENE LA VIVIENDA, SIN CONTAR EL BAÑO, LA COCINA, LOS PASADIZOS Y GARAGE?")
+df_household_1$P106  <- labelled::labelled(df_household_1$P106,
+  label = "¿CUÁNTAS HABITACIONES SE USAN EXCLUSIVAMENTE  PARA DORMIR?")  
+df_household_1$P107  <- labelled::labelled(df_household_1$P107,
+  label = "¿CUÁNTOS GRUPOS DE PERSONAS, INCLUYENDO EL SUYO; COMPARTEN ESTA VIVIENDA PERO COCINAN SUS ALIMENTOS POR SEPARADO?") 
+df_household_1$P105N  <- labelled::labelled(df_household_1$P105N,
+  label = "NUMERO DE HABITACIONES DE LA VIVIENDA")
+
+#recode for P207: ¿MIGRÓ DE VENEZUELA?
+df_household_2 <- df_household_2  |>
+  dplyr::mutate(P207 = ifelse(P207==2,0,P207))
+
+df_household_2a <- df_household_2 
+
+
+#recode of CIUDADES DE ESTUDIO
+df_household_1<-df_household_1 |>
+  mutate(CIUDADES_DE_ESTUDIO = recode(CIUDADES_DE_ESTUDIO, 
+                                      '1' = 'Lima Norte',
+                                      '2' = 'Lima Este',
+                                      '3' = 'Lima Centro',
+                                      '4' = 'Lima Sur',
+                                      '5' = 'Callao',
+                                      '6' = 'Arequipa',
+                                      '7' = 'Cusco',
+                                      '8' = 'Trujillo',
+                                      '9' = 'Tumbes'))
+df_household_1$CIUDADES_DE_ESTUDIO  <- labelled::labelled(df_household_1$CIUDADES_DE_ESTUDIO,
+  label = "CIUDADES DE ESTUDIO")
+
+df_household_2a<-df_household_2a |>
+  mutate(CIUDADES_DE_ESTUDIO = recode(CIUDADES_DE_ESTUDIO, 
+                                      '1' = 'Lima Norte',
+                                      '2' = 'Lima Este',
+                                      '3' = 'Lima Centro',
+                                      '4' = 'Lima Sur',
+                                      '5' = 'Callao',
+                                      '6' = 'Arequipa',
+                                      '7' = 'Cusco',
+                                      '8' = 'Trujillo',
+                                      '9' = 'Tumbes'))
+df_household_2a$CIUDADES_DE_ESTUDIO  <- labelled::labelled(df_household_2a$CIUDADES_DE_ESTUDIO,
+  label = "CIUDADES DE ESTUDIO")
+
+df_household_4<-df_household_4 |>
+  mutate(CIUDADES_DE_ESTUDIO = recode(CIUDADES_DE_ESTUDIO, 
+                                      '1' = 'Lima Norte',
+                                      '2' = 'Lima Este',
+                                      '3' = 'Lima Centro',
+                                      '4' = 'Lima Sur',
+                                      '5' = 'Callao',
+                                      '6' = 'Arequipa',
+                                      '7' = 'Cusco',
+                                      '8' = 'Trujillo',
+                                      '9' = 'Tumbes'))
+df_household_4$CIUDADES_DE_ESTUDIO  <- labelled::labelled(df_household_4$CIUDADES_DE_ESTUDIO,
+  label = "CIUDADES DE ESTUDIO")
+
+df_household_5<-df_household_5 |>
+  mutate(CIUDADES_DE_ESTUDIO = recode(CIUDADES_DE_ESTUDIO, 
+                                      '1' = 'Lima Norte',
+                                      '2' = 'Lima Este',
+                                      '3' = 'Lima Centro',
+                                      '4' = 'Lima Sur',
+                                      '5' = 'Callao',
+                                      '6' = 'Arequipa',
+                                      '7' = 'Cusco',
+                                      '8' = 'Trujillo',
+                                      '9' = 'Tumbes'))
+df_household_5$CIUDADES_DE_ESTUDIO  <- labelled::labelled(df_household_5$CIUDADES_DE_ESTUDIO,
+  label = "CIUDADES DE ESTUDIO")
+
+df_household_6<-df_household_6 |>
+  mutate(CIUDADES_DE_ESTUDIO = recode(CIUDADES_DE_ESTUDIO, 
+                                      '1' = 'Lima Norte',
+                                      '2' = 'Lima Este',
+                                      '3' = 'Lima Centro',
+                                      '4' = 'Lima Sur',
+                                      '5' = 'Callao',
+                                      '6' = 'Arequipa',
+                                      '7' = 'Cusco',
+                                      '8' = 'Trujillo',
+                                      '9' = 'Tumbes'))
+df_household_6$CIUDADES_DE_ESTUDIO  <- labelled::labelled(df_household_6$CIUDADES_DE_ESTUDIO,
+  label = "CIUDADES DE ESTUDIO")
+
+
+
+#group by household to create the variables for Total number of household members and Total number of venezuelan household members
+df_household_2 <- df_household_2  |>
+  group_by(CODIGO_HOGAR)  |>
+  summarise(P15_N = n(),
+            P207_sum = sum(P207, na.rm = TRUE),
+            #nmiembros_recod = max(nmiembrosrecod,na.rm = TRUE),
+            #P105_recod = max(P105C,na.rm = TRUE),
+            #P106_recod = max(p106uso,na.rm = TRUE)
+            )
+df_household_2$P15_N  <- labelled::labelled(df_household_2$P15_N,
+  label = "P15_N. Total number of household members")
+df_household_2$P207_sum  <- labelled::labelled(df_household_2$P207_sum,
+  label = "P207_sum. Total number of venezuelan household members")
+
+##rename the Household id
+df_household_1 <- df_household_1  |>
+  rename(uuid = CODIGO_HOGAR)  |>
+  dplyr::mutate(class = CIUDADES_DE_ESTUDIO)  
+
+df_household_2 <- df_household_2  |>
+  rename(uuid = CODIGO_HOGAR) |>
+  select(uuid,P15_N,P207_sum)  
+
+df_household_2a <- df_household_2a  |>
+  rename(uuid = CODIGO_HOGAR) 
+
+df_household_4 <- df_household_4  |>
+  rename(uuid = CODIGO_HOGAR) 
+
+df_household_5 <- df_household_5  |>
+  rename(uuid = CODIGO_HOGAR) 
+
+df_household_6 <- df_household_6  |>
+  rename(uuid = CODIGO_HOGAR) 
+
+#merge data at the household level
+df_household <- merge(df_household_1, df_household_2, by = "uuid")
+
+#### Filtramos fuera del análisis las personas que no migraron de Venezuela*.
+df_household_2a <- df_household_2a  |>
+  filter(P207 == 1)
+
+# #### Borramos las filas donde la encuesta no llegó a su fin
+# df_household <- df_household  |>
+#   filter(RESULTADO_FINAL_VIVIENDA <3)
+
+#Filtering out the Households without venezuelan people
+# df_household_2 <- df_household_2  |>
+#   dplyr::filter(P207_sum > 0)
+
+# df_household_2 <- df_household_2  |>
+#   dplyr::filter(P205_A > 2)
+
+# df_household_2 <- df_household_2  |>
+#   dplyr::filter(HOGAR < 20)
 
 ```
  
