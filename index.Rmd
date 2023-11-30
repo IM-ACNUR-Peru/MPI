@@ -1282,23 +1282,21 @@ df_household_1 <- df_household_1  |>
   mutate(P105N = ifelse(is.na(P105N),na.omit(P105N)[1], P105N)) |> # this line fills the NA's this calculation that discretizes the number of rooms
   ungroup()
 
-#bringing back the labels 
-df_household_1$P101  <- labelled::labelled(df_household_1$P101,
-  label = "TIPO DE VIVIENDA:")
-df_household_1$P102  <- labelled::labelled(df_household_1$P102,
-  label = "¿EL MATERIAL DE CONSTRUCCIÓN PREDOMINANTE EN LAS PAREDES EXTERIORES ES:")  
-df_household_1$P103  <- labelled::labelled(df_household_1$P103,
-  label = "¿EL MATERIAL DE CONSTRUCCIÓN PREDOMINANTE EN LOS TECHOS ES:")
-df_household_1$P104  <- labelled::labelled(df_household_1$P104,
-  label = "¿EL MATERIAL DE CONSTRUCCIÓN PREDOMINANTE EN LOS PISOS ES:")  
-df_household_1$P105  <- labelled::labelled(df_household_1$P105,
-  label = "¿CUÁNTAS HABITACIONES EN TOTAL TIENE LA VIVIENDA, SIN CONTAR EL BAÑO, LA COCINA, LOS PASADIZOS Y GARAGE?")
-df_household_1$P106  <- labelled::labelled(df_household_1$P106,
-  label = "¿CUÁNTAS HABITACIONES SE USAN EXCLUSIVAMENTE  PARA DORMIR?")  
-df_household_1$P107  <- labelled::labelled(df_household_1$P107,
-  label = "¿CUÁNTOS GRUPOS DE PERSONAS, INCLUYENDO EL SUYO; COMPARTEN ESTA VIVIENDA PERO COCINAN SUS ALIMENTOS POR SEPARADO?") 
-df_household_1$P105N  <- labelled::labelled(df_household_1$P105N,
-  label = "NUMERO DE HABITACIONES DE LA VIVIENDA")
+#bringing back the lost labels 
+columns_to_label <- c("P101", "P102", "P103", "P104", "P105", "P106", "P107", "P105N")
+for (col in columns_to_label) {
+  df_household_1[[col]] <- labelled::labelled(df_household_1[[col]], label = switch(
+    col,
+    P101 = "TIPO DE VIVIENDA:",
+    P102 = "¿EL MATERIAL DE CONSTRUCCIÓN PREDOMINANTE EN LAS PAREDES EXTERIORES ES:",
+    P103 = "¿EL MATERIAL DE CONSTRUCCIÓN PREDOMINANTE EN LOS TECHOS ES:",
+    P104 = "¿EL MATERIAL DE CONSTRUCCIÓN PREDOMINANTE EN LOS PISOS ES:",
+    P105 = "¿CUÁNTAS HABITACIONES EN TOTAL TIENE LA VIVIENDA, SIN CONTAR EL BAÑO, LA COCINA, LOS PASADIZOS Y GARAGE?",
+    P106 = "¿CUÁNTAS HABITACIONES SE USAN EXCLUSIVAMENTE PARA DORMIR?",
+    P107 = "¿CUÁNTOS GRUPOS DE PERSONAS, INCLUYENDO EL SUYO; COMPARTEN ESTA VIVIENDA PERO COCINAN SUS ALIMENTOS POR SEPARADO?",
+    P105N = "NUMERO DE HABITACIONES DE LA VIVIENDA"
+  ))
+}
 
 #recode for P207: ¿MIGRÓ DE VENEZUELA?
 df_household_2 <- df_household_2  |>
@@ -1306,9 +1304,9 @@ df_household_2 <- df_household_2  |>
 
 df_household_2a <- df_household_2 
 
-
 #recode of CIUDADES DE ESTUDIO
-df_household_1<-df_household_1 |>
+recode_cities<-function(df) { 
+  df <- df |>
   mutate(CIUDADES_DE_ESTUDIO = recode(CIUDADES_DE_ESTUDIO, 
                                       '1' = 'Lima Norte',
                                       '2' = 'Lima Este',
@@ -1319,66 +1317,15 @@ df_household_1<-df_household_1 |>
                                       '7' = 'Cusco',
                                       '8' = 'Trujillo',
                                       '9' = 'Tumbes'))
-df_household_1$CIUDADES_DE_ESTUDIO  <- labelled::labelled(df_household_1$CIUDADES_DE_ESTUDIO,
-  label = "CIUDADES DE ESTUDIO")
+  df$CIUDADES_DE_ESTUDIO <- labelled::labelled(df$CIUDADES_DE_ESTUDIO, label = "CIUDADES DE ESTUDIO")
+  return(df)
+  }
 
-df_household_2a<-df_household_2a |>
-  mutate(CIUDADES_DE_ESTUDIO = recode(CIUDADES_DE_ESTUDIO, 
-                                      '1' = 'Lima Norte',
-                                      '2' = 'Lima Este',
-                                      '3' = 'Lima Centro',
-                                      '4' = 'Lima Sur',
-                                      '5' = 'Callao',
-                                      '6' = 'Arequipa',
-                                      '7' = 'Cusco',
-                                      '8' = 'Trujillo',
-                                      '9' = 'Tumbes'))
-df_household_2a$CIUDADES_DE_ESTUDIO  <- labelled::labelled(df_household_2a$CIUDADES_DE_ESTUDIO,
-  label = "CIUDADES DE ESTUDIO")
-
-df_household_4<-df_household_4 |>
-  mutate(CIUDADES_DE_ESTUDIO = recode(CIUDADES_DE_ESTUDIO, 
-                                      '1' = 'Lima Norte',
-                                      '2' = 'Lima Este',
-                                      '3' = 'Lima Centro',
-                                      '4' = 'Lima Sur',
-                                      '5' = 'Callao',
-                                      '6' = 'Arequipa',
-                                      '7' = 'Cusco',
-                                      '8' = 'Trujillo',
-                                      '9' = 'Tumbes'))
-df_household_4$CIUDADES_DE_ESTUDIO  <- labelled::labelled(df_household_4$CIUDADES_DE_ESTUDIO,
-  label = "CIUDADES DE ESTUDIO")
-
-df_household_5<-df_household_5 |>
-  mutate(CIUDADES_DE_ESTUDIO = recode(CIUDADES_DE_ESTUDIO, 
-                                      '1' = 'Lima Norte',
-                                      '2' = 'Lima Este',
-                                      '3' = 'Lima Centro',
-                                      '4' = 'Lima Sur',
-                                      '5' = 'Callao',
-                                      '6' = 'Arequipa',
-                                      '7' = 'Cusco',
-                                      '8' = 'Trujillo',
-                                      '9' = 'Tumbes'))
-df_household_5$CIUDADES_DE_ESTUDIO  <- labelled::labelled(df_household_5$CIUDADES_DE_ESTUDIO,
-  label = "CIUDADES DE ESTUDIO")
-
-df_household_6<-df_household_6 |>
-  mutate(CIUDADES_DE_ESTUDIO = recode(CIUDADES_DE_ESTUDIO, 
-                                      '1' = 'Lima Norte',
-                                      '2' = 'Lima Este',
-                                      '3' = 'Lima Centro',
-                                      '4' = 'Lima Sur',
-                                      '5' = 'Callao',
-                                      '6' = 'Arequipa',
-                                      '7' = 'Cusco',
-                                      '8' = 'Trujillo',
-                                      '9' = 'Tumbes'))
-df_household_6$CIUDADES_DE_ESTUDIO  <- labelled::labelled(df_household_6$CIUDADES_DE_ESTUDIO,
-  label = "CIUDADES DE ESTUDIO")
-
-
+df_household_1 <- recode_cities(df_household_1)
+df_household_2a <- recode_cities(df_household_2a)
+df_household_4 <- recode_cities(df_household_4)
+df_household_5 <- recode_cities(df_household_5)
+df_household_6 <- recode_cities(df_household_6)
 
 #group by household to create the variables for Total number of household members and Total number of venezuelan household members
 df_household_2 <- df_household_2  |>
@@ -1394,26 +1341,24 @@ df_household_2$P15_N  <- labelled::labelled(df_household_2$P15_N,
 df_household_2$P207_sum  <- labelled::labelled(df_household_2$P207_sum,
   label = "P207_sum. Total number of venezuelan household members")
 
-##rename the Household id
-df_household_1 <- df_household_1  |>
-  rename(uuid = CODIGO_HOGAR)  |>
-  dplyr::mutate(class = CIUDADES_DE_ESTUDIO)  
+# Function to rename the Household id's in each dataframe
+rename_uuid <- function(df) {
+  df <- df |>
+    rename(uuid = CODIGO_HOGAR)
+    if ("CIUDADES_DE_ESTUDIO" %in% colnames(df)) {
+      df <- df |>
+      rename(class = CIUDADES_DE_ESTUDIO)
+  }
+  return(df)
+}
 
-df_household_2 <- df_household_2  |>
-  rename(uuid = CODIGO_HOGAR) |>
-  select(uuid,P15_N,P207_sum)  
-
-df_household_2a <- df_household_2a  |>
-  rename(uuid = CODIGO_HOGAR) 
-
-df_household_4 <- df_household_4  |>
-  rename(uuid = CODIGO_HOGAR) 
-
-df_household_5 <- df_household_5  |>
-  rename(uuid = CODIGO_HOGAR) 
-
-df_household_6 <- df_household_6  |>
-  rename(uuid = CODIGO_HOGAR) 
+# Applying the function to each dataframe
+df_household_1 <- rename_uuid(df_household_1)
+df_household_2 <- rename_uuid(df_household_2)
+df_household_2a <- rename_uuid(df_household_2a)
+df_household_4 <- rename_uuid(df_household_4)
+df_household_5 <- rename_uuid(df_household_5)
+df_household_6 <- rename_uuid(df_household_6)
 
 #merge data at the household level
 df_household <- merge(df_household_1, df_household_2, by = "uuid")
@@ -1422,19 +1367,7 @@ df_household <- merge(df_household_1, df_household_2, by = "uuid")
 df_household_2a <- df_household_2a  |>
   filter(P207 == 1)
 
-# #### Borramos las filas donde la encuesta no llegó a su fin
-# df_household <- df_household  |>
-#   filter(RESULTADO_FINAL_VIVIENDA <3)
 
-#Filtering out the Households without venezuelan people
-# df_household_2 <- df_household_2  |>
-#   dplyr::filter(P207_sum > 0)
-
-# df_household_2 <- df_household_2  |>
-#   dplyr::filter(P205_A > 2)
-
-# df_household_2 <- df_household_2  |>
-#   dplyr::filter(HOGAR < 20)
 
 ```
  
