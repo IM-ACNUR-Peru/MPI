@@ -2220,6 +2220,178 @@ for (i in 4:ncol(data_roster)) {
 }
 
 ```
+#Household preprocessing ENAHO 2022
+
+
+```{r df_household_preprocessing_enaho_2022}
+##Preprocessing
+
+#
+
+#Loading ENAHO 2022
+df_household_1 <- read_sav(here::here("data-raw","Enaho01-2022-100.sav"))
+
+
+# df_household_2 <- read_sav(here::here("data-raw","ENPOVE_Capitulo 200 - Carctaerísticas de los Residentes del Hogar.sav.sav"))
+# 
+# #df_household_3 <- read_sav(here::here("data-raw","ENPOVE_Capitulo 300 - Situación Migratoria de la Persona.sav.sav"))
+# 
+# df_household_4 <- read_sav(here::here("data-raw","ENPOVE_Capitulo 400 - Salud.sav.sav"))
+# 
+# df_household_5 <- read_sav(here::here("data-raw","ENPOVE_Capitulo 500 - Educación.sav.sav"))
+# 
+# df_household_6 <- read_sav(here::here("data-raw","ENPOVE_Capitulo 600 - Empleo.sav.sav"))
+
+######## DEPURACIÓN DE FILAS 
+
+# We filter out of the analysis the homes where the survey was not completed.
+df_household_1 <- df_household_1  |>
+  dplyr::filter(RESULT == 1)
+
+#when more than one household shares a residence the questions related to housing conditions are omitted and only registered for the first household. Then this information is filled for every household within the residence using "CODIGO_VIVIENDA"
+df_household_1 <- df_household_1  |>
+  group_by(CODIGO_VIVIENDA) |>
+  mutate(P101 = ifelse(is.na(P101), na.omit(P101)[1], P101)) |>
+  mutate(P102 = ifelse(is.na(P102), na.omit(P102)[1], P102)) |>
+  mutate(P103 = ifelse(is.na(P103), na.omit(P103)[1], P103)) |>
+  mutate(P104 = ifelse(is.na(P104), na.omit(P104)[1], P104)) |>
+  mutate(P105 = ifelse(is.na(P105), na.omit(P105)[1], P105)) |>
+  mutate(P106 = ifelse(is.na(P106), na.omit(P106)[1], P106)) |>
+  mutate(P107 = ifelse(is.na(P107), na.omit(P107)[1], P107)) |>
+  mutate(P105N = ifelse(is.na(P105N),na.omit(P105N)[1], P105N)) |> # this line fills the NA's this calculation that discretizes the number of rooms
+  ungroup()
+
+#bringing back the lost labels 
+columns_to_label <- c("P101", "P102", "P103", "P104", "P105", "P106", "P107", "P105N")
+for (col in columns_to_label) {
+  df_household_1[[col]] <- labelled::labelled(df_household_1[[col]], label = switch(
+    col,
+    P101 = "TIPO DE VIVIENDA:",
+    P102 = "¿EL MATERIAL DE CONSTRUCCIÓN PREDOMINANTE EN LAS PAREDES EXTERIORES ES:",
+    P103 = "¿EL MATERIAL DE CONSTRUCCIÓN PREDOMINANTE EN LOS TECHOS ES:",
+    P104 = "¿EL MATERIAL DE CONSTRUCCIÓN PREDOMINANTE EN LOS PISOS ES:",
+    P105 = "¿CUÁNTAS HABITACIONES EN TOTAL TIENE LA VIVIENDA, SIN CONTAR EL BAÑO, LA COCINA, LOS PASADIZOS Y GARAGE?",
+    P106 = "¿CUÁNTAS HABITACIONES SE USAN EXCLUSIVAMENTE PARA DORMIR?",
+    P107 = "¿CUÁNTOS GRUPOS DE PERSONAS, INCLUYENDO EL SUYO; COMPARTEN ESTA VIVIENDA PERO COCINAN SUS ALIMENTOS POR SEPARADO?",
+    P105N = "NUMERO DE HABITACIONES DE LA VIVIENDA"
+  ))
+}
+
+#recode for P207: ¿MIGRÓ DE VENEZUELA?
+df_household_2 <- df_household_2  |>
+  dplyr::mutate(P207 = ifelse(P207==2,0,P207))
+
+df_household_2a <- df_household_2 
+
+#recode of CIUDADES DE ESTUDIO
+recode_cities<-function(df) { 
+  df <- df |>
+  mutate(CIUDADES_DE_ESTUDIO = recode(CIUDADES_DE_ESTUDIO, 
+                                      '1' = 'Lima Norte',
+                                      '2' = 'Lima Este',
+                                      '3' = 'Lima Centro',
+                                      '4' = 'Lima Sur',
+                                      '5' = 'Callao',
+                                      '6' = 'Arequipa',
+                                      '7' = 'Cusco',
+                                      '8' = 'Trujillo',
+                                      '9' = 'Tumbes'))
+  df$CIUDADES_DE_ESTUDIO <- labelled::labelled(df$CIUDADES_DE_ESTUDIO, label = "CIUDADES DE ESTUDIO")
+  return(df)
+  }
+
+df_household_1 <- recode_cities(df_household_1)
+df_household_2a <- recode_cities(df_household_2a)
+df_household_4 <- recode_cities(df_household_4)
+df_household_5 <- recode_cities(df_household_5)
+df_household_6 <- recode_cities(df_household_6)
+
+#group by household to create the variables for Total number of household members and Total number of venezuelan household members
+df_household_2 <- df_household_2  |>
+  group_by(CODIGO_HOGAR)  |>
+  summarise(P15_N = n(),
+            P207_sum = sum(P207, na.rm = TRUE),
+            #nmiembros_recod = max(nmiembrosrecod,na.rm = TRUE),
+            #P105_recod = max(P105C,na.rm = TRUE),
+            #P106_recod = max(p106uso,na.rm = TRUE)
+            )
+df_household_2$P15_N  <- labelled::labelled(df_household_2$P15_N,
+  label = "P15_N. Total number of household members")
+df_household_2$P207_sum  <- labelled::labelled(df_household_2$P207_sum,
+  label = "P207_sum. Total number of venezuelan household members")
+
+# Function to rename the Household id's in each dataframe
+rename_uuid <- function(df) {
+  df <- df |>
+    rename(uuid = CODIGO_HOGAR)
+    if ("CIUDADES_DE_ESTUDIO" %in% colnames(df)) {
+      df <- df |>
+      rename(CIUDAD = CIUDADES_DE_ESTUDIO)
+  }
+  return(df)
+}
+
+# Applying the function to each dataframe
+df_household_1 <- rename_uuid(df_household_1)
+df_household_2 <- rename_uuid(df_household_2)
+df_household_2a <- rename_uuid(df_household_2a)
+df_household_4 <- rename_uuid(df_household_4)
+df_household_5 <- rename_uuid(df_household_5)
+df_household_6 <- rename_uuid(df_household_6)
+
+#merge data at the household level
+df_household <- merge(df_household_1, df_household_2, by = "uuid")
+
+#### Filtramos fuera del análisis las personas que no migraron de Venezuela*.
+df_household_2a <- df_household_2a  |>
+  filter(P207 == 1)
+
+# Extract common and unique column names
+common_cols <- Reduce(intersect, lapply(list(names(df_household_2a), names(df_household_4), names(df_household_5), names(df_household_6)), as.vector))
+
+diff_cols_df2a <- setdiff(names(df_household_2a), common_cols)
+diff_cols_df4 <- setdiff(names(df_household_4), common_cols)
+diff_cols_df5 <- setdiff(names(df_household_5), common_cols)
+diff_cols_df6 <- setdiff(names(df_household_6), common_cols)
+
+# Select only unique columns from each dataframe along with the key variable
+df2a_unique <- df_household_2a %>%
+  select(all_of(c(diff_cols_df2a, "CODIGO_PERSONA")))
+df4_unique <- df_household_4 %>%
+  select(all_of(c(diff_cols_df4, "CODIGO_PERSONA")))
+df5_unique <- df_household_5 %>%
+  select(all_of(c(diff_cols_df5, "CODIGO_PERSONA")))
+df6_unique <- df_household_6 %>%
+  select(all_of(c(diff_cols_df6, "CODIGO_PERSONA")))
+
+# Merge dataframes based on the key "CODIGO_PERSONA" and add columns with different names
+df_household_roster <- df_household_2a %>%
+  left_join(df4_unique, by = "CODIGO_PERSONA") %>%
+  left_join(df5_unique, by = "CODIGO_PERSONA") %>%
+  left_join(df6_unique, by = "CODIGO_PERSONA")
+
+# Rename variables
+df_household <- df_household |>
+  rename(factorfinal = FACTOR_DE_EXPANSION,
+         Ubigeo = UBIGEO)
+
+df_household_roster <- df_household_roster |>
+  rename(factorfinal = FACTOR_DE_EXPANSION,
+         Ubigeo = UBIGEO)
+
+#clean environment
+rm(df2a_unique)
+rm(df4_unique)
+rm(df5_unique)
+rm(df6_unique)
+rm(df_household_1)
+rm(df_household_2)
+rm(df_household_2a)
+rm(df_household_4)
+rm(df_household_5)
+rm(df_household_6)
+```
+
 
 
 
