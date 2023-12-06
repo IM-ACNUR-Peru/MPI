@@ -17,3 +17,5 @@ This analysis is performed on based on [__ENCUESTA DIRIGIDA A LA POBLACIÓN VENE
      * CAP 300: https://proyectos.inei.gob.pe/iinei/srienaho/descarga/SPSS/642-Modulo1418.zip 
      * CAP 400: https://proyectos.inei.gob.pe/iinei/srienaho/descarga/SPSS/642-Modulo1419.zip
      * CAP 500: https://proyectos.inei.gob.pe/iinei/srienaho/descarga/SPSS/642-Modulo1420.zip
+     
+ * ENAHO:  https://proyectos.inei.gob.pe/iinei/srienaho/descarga/SPSS/784-Modulo01.zip     
