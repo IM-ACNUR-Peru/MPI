@@ -144,12 +144,6 @@ plot_indic <- function(indic, cross, weight){
 #ENPOVE 2022
 df_household <- read_sav(here::here("data-raw","ENPOVE2022_V_100 Características de la vivienda y del hogar.sav"))
 
-#ENPOVE 2018
-#df_household <- read_sav(here::here("data-raw","ENPOVE_Capitulo 100 - Carctaerísticas de la Vivienda y del Hogar.sav.sav"))
-
-#ENAHO 2022
-#df_household <- read_sav(here::here("data-raw","ENPOVE2022_V_100 Características de la vivienda y del hogar.sav"))
-
 # names(df_household)
 # df_household |> dplyr::select(CIUDAD) |> dplyr::distinct() |> dplyr::pull()
 
@@ -2229,12 +2223,10 @@ for (i in 4:ncol(data_roster)) {
 
 ```{r df_household_preprocessing_enaho_2022}
 ##Preprocessing
-
 #
 
 #Loading ENAHO 2022
 df_household_1 <- read_sav(here::here("data-raw","Enaho01-2022-100.sav"))
-
 
 # df_household_2 <- read_sav(here::here("data-raw","ENPOVE_Capitulo 200 - Carctaerísticas de los Residentes del Hogar.sav.sav"))
 # 
@@ -2248,11 +2240,52 @@ df_household_1 <- read_sav(here::here("data-raw","Enaho01-2022-100.sav"))
 
 ######## DEPURACIÓN DE FILAS 
 
-# We filter out of the analysis the homes where the survey was not completed.
+# We filter out of the analysis the HH where the survey was other than complete and incomplete.
 df_household_1 <- df_household_1  |>
-  dplyr::filter(RESULT == 1)
+  dplyr::filter(RESULT <= 2)
 
-#when more than one household shares a residence the questions related to housing conditions are omitted and only registered for the first household. Then this information is filled for every household within the residence using "CODIGO_VIVIENDA"
+# Create the variable ambito geografico in order to later filter out rural HH's
+df_household_1 <- df_household_1 |>
+  dplyr::mutate(AMBITO = dplyr::case_when(
+    ESTRATO %in% c(1:5) ~ 1,   TRUE ~ 0   ) )
+df_household_1$AMBITO  <- labelled::labelled(df_household_1$AMBITO,
+  labels = c( 'Rural' = 0, 'Urbano' = 1 ),
+  label = "Ambito geográfico (Urbano | Rural)")  
+
+# filter out rural Households
+df_household_1 <- df_household_1  |>
+  dplyr::filter(AMBITO == 1)
+
+######## CREATE UNIQUE RESIDENCE/DWELLING ID
+df_household_1 <- df_household_1  |>
+  dplyr::mutate(CODIGO_VIVIENDA = paste0(CONGLOME, VIVIENDA))
+df_household_1$CODIGO_VIVIENDA  <- labelled::labelled(df_household_1$CODIGO_VIVIENDA,
+  label = "Codigo de Vivienda") 
+
+######## CREATE UNIQUE HOUSEHOLD ID
+df_household_1 <- df_household_1  |>
+  dplyr::mutate(uuid = paste0(CONGLOME, VIVIENDA, HOGAR))
+df_household_1$uuid  <- labelled::labelled(df_household_1$uuid,
+  label = "Codigo de hogar") 
+
+# select variables
+df_household_1 <- df_household_1  |>
+  select(AÑO,MES,CONGLOME,VIVIENDA,HOGAR,UBIGEO,DOMINIO,ESTRATO,PERIODO,TIPENC,RESULT,
+         PANEL,AMBITO,CODIGO_VIVIENDA,uuid,P22,P23,P24A,P24B,P101,P102,P103A,P103,P104,P104A,
+         P105A,P110,P110A1,P110A,P110A_MODIFICADA,P110C,P110C1,P110C2,P110C3,P111A,P1121,
+         P1123,P1124,P1125,P1126,P1127,P112A,P1131,P1132,P1133,P1135,P1136,P1139,P1137,P1138,P113A,
+         P1141,P1142,P1143,P1144,P1145,T110,P200I,P600I,P700I,P710I,P800I,T110,T111A,
+         NCONGLOME,SUB_CONGLOME,CODCCPP,NOMCCPP,NBI1,NBI2,NBI3,NBI4,NBI5,FACTOR07)
+
+# Rename the variables to have less editing in the code
+df_household_1 <- df_household_1  |>
+  rename(P107 = P105A,
+         P106 = P104A,
+         P105 = P104,
+         P104 = P103,
+         P103 = P103A)
+
+# when more than one household shares a residence the questions related to housing conditions are omitted and only registered for the first household. Then this information is filled for every household within the residence using "CODIGO_VIVIENDA"
 df_household_1 <- df_household_1  |>
   group_by(CODIGO_VIVIENDA) |>
   mutate(P101 = ifelse(is.na(P101), na.omit(P101)[1], P101)) |>
