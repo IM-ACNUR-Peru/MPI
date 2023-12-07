@@ -135,7 +135,7 @@ plot_indic <- function(indic, cross, weight){
 ```
 
  
-# Review of Indicators: ENPVE 2018 vs ENPOVE 2022  
+# Review of Indicators: ENPOVE 2018 vs ENPOVE 2022  
 
 ```{r  df_household_preprocessing}
 ##Preprocessing
@@ -541,7 +541,7 @@ plot_indic(indic = df_household_enpove2022$ind04_07,
 cross <- c("CIUDAD")
 crosslab <- "CIUDAD"
 # dput(names(df_household))
-data <- df_household |>
+data <- df_household_enpove2022 |>
         dplyr::select(CIUDAD, factorfinal , 
         #                        P21, 
         # P101, P102, P103, P104, P105, P106, P107, P108_1, 
@@ -2263,10 +2263,10 @@ df_household_1$uuid  <- labelled::labelled(df_household_1$uuid,
 # select variables
 df_household_1 <- df_household_1  |>
   select(AÑO,MES,CONGLOME,VIVIENDA,HOGAR,UBIGEO,DOMINIO,ESTRATO,PERIODO,TIPENC,RESULT,
-         PANEL,AMBITO,CODIGO_VIVIENDA,uuid,P22,P23,P24A,P24B,P101,P102,P103A,P103,P104,P104A,
-         P105A,P110,P110A1,P110A,P110A_MODIFICADA,P110C,P110C1,P110C2,P110C3,P111A,P1121,
-         P1123,P1124,P1125,P1126,P1127,P112A,P1131,P1132,P1133,P1135,P1136,P1139,P1137,P1138,P113A,
-         P1141,P1142,P1143,P1144,P1145,T110,P200I,P600I,P700I,P710I,P800I,T110,T111A,
+         PANEL,CODIGO_VIVIENDA,uuid,P101,P102,P103A,P103,P104,P104A,
+         P105A,P110,P111A,P1121,P1123,P1124,P1125,P1126,P1127,P112A,
+         P1131,P1132,P1133,P1135,P1136,P1139,P1137,P1138,P113A,P1141,P1142,P1143,
+         P1144,P1145,T110,P200I,P600I,P700I,P710I,P800I,T110,T111A,
          NCONGLOME,SUB_CONGLOME,CODCCPP,NOMCCPP,NBI1,NBI2,NBI3,NBI4,NBI5,FACTOR07)
 
 # Rename the variables to have less editing in the code
@@ -2286,25 +2286,32 @@ df_household_1 <- df_household_1  |>
   mutate(P104 = ifelse(is.na(P104), na.omit(P104)[1], P104)) |>
   mutate(P105 = ifelse(is.na(P105), na.omit(P105)[1], P105)) |>
   mutate(P106 = ifelse(is.na(P106), na.omit(P106)[1], P106)) |>
-  mutate(P107 = ifelse(is.na(P107), na.omit(P107)[1], P107)) |>
-  mutate(P105N = ifelse(is.na(P105N),na.omit(P105N)[1], P105N)) |> # this line fills the NA's this calculation that discretizes the number of rooms
   ungroup()
 
 #bringing back the lost labels 
-columns_to_label <- c("P101", "P102", "P103", "P104", "P105", "P106", "P107", "P105N")
+columns_to_label <- c("P101", "P102", "P103", "P104", "P105", "P106")
 for (col in columns_to_label) {
   df_household_1[[col]] <- labelled::labelled(df_household_1[[col]], label = switch(
     col,
-    P101 = "TIPO DE VIVIENDA:",
-    P102 = "¿EL MATERIAL DE CONSTRUCCIÓN PREDOMINANTE EN LAS PAREDES EXTERIORES ES:",
-    P103 = "¿EL MATERIAL DE CONSTRUCCIÓN PREDOMINANTE EN LOS TECHOS ES:",
-    P104 = "¿EL MATERIAL DE CONSTRUCCIÓN PREDOMINANTE EN LOS PISOS ES:",
-    P105 = "¿CUÁNTAS HABITACIONES EN TOTAL TIENE LA VIVIENDA, SIN CONTAR EL BAÑO, LA COCINA, LOS PASADIZOS Y GARAGE?",
-    P106 = "¿CUÁNTAS HABITACIONES SE USAN EXCLUSIVAMENTE PARA DORMIR?",
-    P107 = "¿CUÁNTOS GRUPOS DE PERSONAS, INCLUYENDO EL SUYO; COMPARTEN ESTA VIVIENDA PERO COCINAN SUS ALIMENTOS POR SEPARADO?",
-    P105N = "NUMERO DE HABITACIONES DE LA VIVIENDA"
+    P101 = "Tipo de vivienda:",
+    P102 = "El material predominante en las paredes exteriores es:",
+    P103 = "El material predominante en los techos es:",
+    P104 = "El material predominante en los pisos es:",
+    P105 = "¿Cuántas habitaciones en total tiene la vivienda, sin contar el baño, la cocina, los pasadizos, ni el garage?",
+    P106 = "¿Cuántas habitaciones se usan exclusivamente para dormir?",
   ))
 }
+
+# creation of the variable Cooking Fuel based on the answers to "What fuel do you use most frequently at home for cooking?
+df_household_1 <- df_household_1 |>
+          dplyr::mutate(P113 = dplyr::case_when(
+            P113A %in% c(1:3) ~ 1,   TRUE ~ 0   ) )
+df_household_1$P113  <- labelled::labelled(df_household_1$P113,
+  labels = c( 'Carbón|Leña|Bosta, estiercol|Otro' = 0, 'Electricidad|Gas (balón GLP)|Gas natural' = 1 ),
+  label = "Combustible que usan en el hogar para cocinar con mayor frecuencia")
+
+
+
 
 #recode for P207: ¿MIGRÓ DE VENEZUELA?
 df_household_2 <- df_household_2  |>
