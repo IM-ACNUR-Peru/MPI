@@ -2221,20 +2221,27 @@ for (i in 4:ncol(data_roster)) {
 
 #Household preprocessing ENAHO 2022
 
-
 ```{r df_household_preprocessing_enaho_2022, eval=FALSE, include=FALSE}
 ##Preprocessing
 #
 
-#Loading ENAHO 2022
+#Loading ENAHO's 2022 at household level 
 df_household_1 <- read_sav(here::here("data-raw","Enaho01-2022-100.sav"))
+
+df_household_2 <- read_sav(here::here("data-raw","Enaho01-2022-200.sav"))
+
+df_household_18 <- read_sav(here::here("data-raw","Enaho01-2022-612.sav"))
 
 
 ######## DEPURACIÓN DE FILAS 
 
-# We filter out of the analysis the HH where the survey was other than complete and incomplete.
+# filter out of the analysis the HH where the survey was other than complete and incomplete.
 df_household_1 <- df_household_1  |>
   dplyr::filter(RESULT <= 2)
+
+# filter out of the analysis the people that where not regular members of the household and are not Homeworkers neither Pensioners 
+df_household_2 <- df_household_2  |>
+  dplyr::filter(P204==1 & P203!=8 & P203!=9 )
 
 # Create the variable ambito geografico in order to later filter out rural HH's
 df_household_1 <- df_household_1 |>
@@ -2244,9 +2251,20 @@ df_household_1$AMBITO  <- labelled::labelled(df_household_1$AMBITO,
   labels = c( 'Rural' = 0, 'Urbano' = 1 ),
   label = "Ambito geográfico (Urbano | Rural)")  
 
+df_household_2 <- df_household_2 |>
+  dplyr::mutate(AMBITO = dplyr::case_when(
+    ESTRATO %in% c(1:5) ~ 1,   TRUE ~ 0   ) )
+df_household_2$AMBITO  <- labelled::labelled(df_household_2$AMBITO,
+  labels = c( 'Rural' = 0, 'Urbano' = 1 ),
+  label = "Ambito geográfico (Urbano | Rural)")  
+
 # filter out rural Households
 df_household_1 <- df_household_1  |>
   dplyr::filter(AMBITO == 1)
+
+df_household_2 <- df_household_2  |>
+  dplyr::filter(AMBITO == 1)
+
 
 ######## CREATE UNIQUE RESIDENCE/DWELLING ID
 df_household_1 <- df_household_1  |>
@@ -2254,13 +2272,42 @@ df_household_1 <- df_household_1  |>
 df_household_1$CODIGO_VIVIENDA  <- labelled::labelled(df_household_1$CODIGO_VIVIENDA,
   label = "Codigo de Vivienda") 
 
+df_household_2 <- df_household_2  |>
+  dplyr::mutate(CODIGO_VIVIENDA = paste0(CONGLOME, VIVIENDA))
+df_household_2$CODIGO_VIVIENDA  <- labelled::labelled(df_household_2$CODIGO_VIVIENDA,
+  label = "Codigo de Vivienda") 
+
+df_household_18 <- df_household_18  |>
+  dplyr::mutate(CODIGO_VIVIENDA = paste0(CONGLOME, VIVIENDA))
+df_household_18$CODIGO_VIVIENDA  <- labelled::labelled(df_household_18$CODIGO_VIVIENDA,
+  label = "Codigo de Vivienda") 
+
+
 ######## CREATE UNIQUE HOUSEHOLD ID
 df_household_1 <- df_household_1  |>
   dplyr::mutate(uuid = paste0(CONGLOME, VIVIENDA, HOGAR))
 df_household_1$uuid  <- labelled::labelled(df_household_1$uuid,
   label = "Codigo de hogar") 
 
-# select variables
+df_household_2 <- df_household_2  |>
+  dplyr::mutate(uuid = paste0(CONGLOME, VIVIENDA, HOGAR))
+df_household_2$uuid  <- labelled::labelled(df_household_2$uuid,
+  label = "Codigo de hogar") 
+
+df_household_18 <- df_household_18  |>
+  dplyr::mutate(uuid = paste0(CONGLOME, VIVIENDA, HOGAR))
+df_household_18$uuid  <- labelled::labelled(df_household_18$uuid,
+  label = "Codigo de hogar") 
+
+
+######## CREATE UNIQUE PERSON ID
+df_household_2 <- df_household_2  |>
+  dplyr::mutate(CODIGO_PERSONA = paste0(uuid,CODPERSO))
+df_household_2$CODIGO_PERSONA  <- labelled::labelled(df_household_2$CODIGO_PERSONA,
+  label = "Codigo de hogar") 
+
+
+# select variables from the different datasets
 df_household_1 <- df_household_1  |>
   select(AÑO,MES,CONGLOME,VIVIENDA,HOGAR,UBIGEO,DOMINIO,ESTRATO,PERIODO,TIPENC,RESULT,
          PANEL,CODIGO_VIVIENDA,uuid,P101,P102,P103A,P103,P104,P104A,
@@ -2268,6 +2315,16 @@ df_household_1 <- df_household_1  |>
          P1131,P1132,P1133,P1135,P1136,P1139,P1137,P1138,P113A,P1141,P1142,P1143,
          P1144,P1145,T110,P200I,P600I,P700I,P710I,P800I,T110,T111A,
          NCONGLOME,SUB_CONGLOME,CODCCPP,NOMCCPP,NBI1,NBI2,NBI3,NBI4,NBI5,FACTOR07)
+
+df_household_2 <- df_household_2  |>
+  select(AÑO,MES,CONGLOME,VIVIENDA,HOGAR,CODPERSO,UBIGEO,DOMINIO,ESTRATO,
+         CODIGO_VIVIENDA,uuid,CODIGO_PERSONA,P201P,P203,P203A,P203B,P204,
+         P205,P206,P207,P208A,P208B,P209,P212,P213,NCONGLOME,SUB_CONGLOME,
+         FACPOB07)
+
+df_household_18 <- df_household_18 %>%
+  select(uuid,P612N,P612)
+
 
 # Rename the variables to have less editing in the code
 df_household_1 <- df_household_1  |>
@@ -2302,6 +2359,346 @@ for (col in columns_to_label) {
   ))
 }
 
+#pivot the long asset dataset because it was organized at 28 items assessed per Household  
+df_household_18 <- df_household_18 |>
+  pivot_wider(names_from = P612N, 
+              values_from = P612) |>
+  rename_with(~ paste0("P612_", .x), matches("[0-9]+"))
+df_household_18$P612_1  <- labelled::labelled(df_household_18$P612_1,
+  label = "En su hogar tiene: Radio")
+df_household_18$P612_2  <- labelled::labelled(df_household_18$P612_2,
+  label = "En su hogar tiene: TV a color")
+df_household_18$P612_7  <- labelled::labelled(df_household_18$P612_7,
+  label = "En su hogar tiene: Computadora/Laptop")
+df_household_18$P612_12  <- labelled::labelled(df_household_18$P612_12,
+  label = "En su hogar tiene: Refrigeradora/Congeladora")
+df_household_18$P612_28  <- labelled::labelled(df_household_18$P612_28,
+  label = "En su hogar tiene: Tablet")
+
+
+
+#keep variables ASSETS: "P612_1. Radio" "P612_2. Tv a color" "P612_7. Computadora/laptop" "P612_12. Refrigeradora/congeladora" "P612_28. Tablet"
+df_household_18 <- df_household_18 |>
+  select(uuid,P612_1,P612_2,P612_7,P612_12,P612_28)
+
+#backup
+#df_household_2a <- df_household_2 
+
+#group by household to create the variables for Total number of household members 
+df_household_2 <- df_household_2  |>
+  group_by(uuid)  |>
+  summarise(P15_N = n(),
+            #P207_sum = sum(P207, na.rm = TRUE),
+            #nmiembros_recod = max(nmiembrosrecod,na.rm = TRUE),
+            #P105_recod = max(P105C,na.rm = TRUE),
+            #P106_recod = max(p106uso,na.rm = TRUE)
+            ) 
+df_household_2$P15_N  <- labelled::labelled(df_household_2$P15_N,
+  label = "P15_N. Total number of household members")
+
+
+#merge data at the household level
+df_household <- merge(df_household_1, df_household_2,  by = "uuid")
+df_household <- merge(df_household, df_household_18,  by = "uuid")
+
+
+```
+
+
+
+#Household ENAHO 2022
+
+```{r df_household_indicator_enaho_2022}
+
+##### Data Analysis ########################################
+#  'Deprived' = 0, 'Not Deprived' = 1
+
+######    DIMENSIÓN 3: SERVICIOS PÚBLICOS ####################
+
+##### INDICADOR 1:PORCENTAJE DE HOGARES CON NECESIDADES DE AGUA
+
+##Necesidad de agua = Hogares que no cuentan con acceso a agua a través de red pública dentro de la vivienda
+df_household <- df_household |>
+          dplyr::mutate(drinking_water = dplyr::case_when(
+            P110 == 1 ~ 1,   TRUE ~ 0   ) )
+df_household$drinking_water  <- labelled::labelled(df_household$drinking_water,
+  labels = c( 'Deprived' = 0, 'Not Deprived' = 1 ),
+  label = "Living Standards | Drinking water")
+
+deprivation_profile$drinking_water <- df_household |>
+  define_deprivation(
+    .indicator = drinking_water,
+    .cutoff = P110 == 1
+  )
+
+##### INDICADOR 2:PORCENTAJE DE HOGARES CON NECESIDADES DE SANEAMIENTO
+
+##Necesidad de saneamiento = Hogares que no cuentan con conexión a desagüe dentro de la vivienda 
+df_household <- df_household |>
+          dplyr::mutate(sanitation = dplyr::case_when(
+            P112 == 1 ~ 1,   TRUE ~ 0   ) )
+df_household$sanitation  <- labelled::labelled(df_household$sanitation,
+  labels = c( 'Deprived' = 0, 'Not Deprived' = 1 ),
+  label = "Living Standards |	Sanitation")
+
+deprivation_profile$sanitation <- df_household |>
+  define_deprivation(
+    .indicator = sanitation,
+    .cutoff = P112 == 1
+  )
+
+##### INDICADOR 3: PORCENTAJE DE HOGARES CON NECESIDADES DE ELECTRICIDAD
+
+##Necesidad de electricidad = Hogares que no cuentan con acceso a alumbrado/electricidad
+df_household <- df_household |>
+          dplyr::mutate(electricity = dplyr::case_when(
+            P109 == 1 ~ 1,   TRUE ~ 0   ) )
+df_household$electricity  <- labelled::labelled(df_household$electricity,
+  labels = c( 'Deprived' = 0, 'Not Deprived' = 1 ),
+  label = "Living Standards |	Electricity")
+
+deprivation_profile$electricity <- df_household |>
+  define_deprivation(
+    .indicator = electricity,
+    .cutoff = P109 == 1
+  )
+ 
+#######    DIMENSIÓN 4: CONDICIONES DE VIVIENDA ####################
+
+##### INDICADOR 1: ADEQUATE FLOORING
+
+## Tipo de Piso## 
+#unimproved floor when earth,sand,clay,mud, dung or other, as in UNHCR RMS indicator DWE02
+# Se utilizó los hogares que tengan pisos de: 6) Tierra o 7) Otro material
+df_household <- df_household |>
+          dplyr::mutate(ind04_01 = dplyr::case_when(
+            P104 %in% c(1:5) ~ 1,   TRUE ~ 0   ) )
+df_household$ind04_01  <- labelled::labelled(df_household$ind04_01,
+  labels = c( 'Deprived' = 0, 'Not Deprived' = 1 ),
+  label = "Adequate Flooring")
+
+##### INDICADOR 2: ADEQUATE WALLS
+
+## Tipo de Pared## 
+#improved wall: cement,stone,bricks,cement blocks, covered adobe, wood planks, as in UNHCR RMS indicator DWE04. 
+#Se utilizó los hogares que tengan paredes de: 4) Tapia; 5) Quincha (caña con barro); 6) Piedra con barro; 7) Madera (pona, tornillo, etc.); 8) Triplay/calamina/estera y 9) Otro material
+
+df_household <- df_household |>
+          dplyr::mutate(ind04_02 = dplyr::case_when(
+            P102 %in% c(1:3) ~ 1,   TRUE ~ 0   ) )
+df_household$ind04_02  <- labelled::labelled(df_household$ind04_02,
+  labels = c( 'Deprived' = 0, 'Not Deprived' = 1 ),
+  label = "Adequate Walls")
+
+## VERSION 2
+#Se utilizó los hogares que tengan paredes de: 3) Adobe; 4) Tapia; 5) Quincha (caña con barro); 6) Piedra con barro; 7) Madera (pona, tornillo, etc.); 8) Triplay/calamina/estera y 9) Otro material
+
+df_household <- df_household |>
+          dplyr::mutate(ind04_02v2 = dplyr::case_when(
+            P102 %in% c(1:2) ~ 1,   TRUE ~ 0   ) )
+df_household$ind04_02v2  <- labelled::labelled(df_household$ind04_02v2,
+  labels = c( 'Deprived' = 0, 'Not Deprived' = 1 ),
+  label = "Adequate Walls v2")
+
+## VERSION 3
+#Se utilizó los hogares que tengan paredes de: 2) Piedra, sillar con cal o cemento; 3) Adobe; 4) Tapia; 5) Quincha (caña con barro); 6) Piedra con barro; 7) Madera (pona, tornillo, etc.); 8) Triplay/calamina/estera y 9) Otro material
+
+df_household <- df_household |>
+          dplyr::mutate(ind04_02v3 = dplyr::case_when(
+            P102 == 1 ~ 1,   TRUE ~ 0   ) )
+df_household$ind04_02v3  <- labelled::labelled(df_household$ind04_02v3,
+  labels = c( 'Deprived' = 0, 'Not Deprived' = 1 ),
+  label = "Adequate Walls v3")
+
+##### INDICADOR 3: ADEQUATE ROOFS
+
+## Tipo de Techo## 
+#unimproved roof all options except metal, wood, ceramic tiles, cement, roofing shingles/sheets, as in UNHCR RMS indicator DWE03.
+#Se utilizó los hogares que tengan techos de: 5) Caña o estera con torta de barro o cemento; 6) Triplay/estera/carrizo; 7) Paja, hojas de palmera, etc y 8) Otro material
+
+df_household <- df_household |>
+          dplyr::mutate(ind04_03 = dplyr::case_when(
+            P103 %in% c(1:4) ~ 1,   TRUE ~ 0   ) )
+df_household$ind04_03  <- labelled::labelled(df_household$ind04_03,
+  labels = c( 'Deprived' = 0, 'Not Deprived' = 1 ),
+  label = "Adequate Roofs")
+
+## VERSION 2
+#Se utilizó los hogares que tengan techos de: 4) Planchas de calamina, fibra de cemento o similares; 5) Caña o estera con torta de barro o cemento; 6) Triplay/estera/carrizo; 7) Paja, hojas de palmera, etc y 8) Otro material
+df_household <- df_household |>
+          dplyr::mutate(ind04_03v2 = dplyr::case_when(
+            P103 %in% c(1:3) ~ 1,   TRUE ~ 0   ) )
+df_household$ind04_03v2  <- labelled::labelled(df_household$ind04_03v2,
+  labels = c( 'Deprived' = 0, 'Not Deprived' = 1 ),
+  label = "Adequate Roofs v2")
+
+
+## INDICADOR 4: HOUSING CONDITIONS. The household has inadequate housing materials in any of the three components: floor, roof, or walls.
+
+df_household <- df_household |>
+          dplyr::mutate(housing = dplyr::case_when(
+            ind04_01 == 1 & ind04_02 == 1 & ind04_03 == 1 ~ 1,   
+            TRUE ~ 0   ) )
+df_household$housing  <- labelled::labelled(df_household$housing,
+  labels = c( 'Deprived' = 0, 'Not Deprived' = 1 ),
+  label = "Living Standards | Adequate	Housing (floor, roof, walls)")
+
+## VERSION 2
+# df_household <- df_household |>
+#           dplyr::mutate(housing = dplyr::case_when(
+#             (ind04_01 ==1 | ind04_02v2 ==1 | ind04_03 ==1) ~ 1,   
+#             TRUE ~ 0   ) )
+# df_household$housing  <- labelled::labelled(df_household$housing,
+#   labels = c( 'Deprived' = 0, 'Not Deprived' = 1 ),
+#   label = "Living Standards | Adequate	Housing (floor, roof, walls) v2")
+
+## VERSION 3
+# df_household <- df_household |>
+#           dplyr::mutate(housing = dplyr::case_when(
+#             (ind04_01 ==1 | ind04_02v2 ==1 | ind04_03v2 ==1) ~ 1,   
+#             TRUE ~ 0   ) )
+# df_household$housing  <- labelled::labelled(df_household$housing,
+#   labels = c( 'Deprived' = 0, 'Not Deprived' = 1 ),
+#   label = "Living Standards | Adequate	Housing (floor, roof, walls) v3")
+
+## VERSION 4
+# df_household <- df_household |>
+#           dplyr::mutate(housing = dplyr::case_when(
+#             (ind04_01 ==1 | ind04_02v3 ==1 | ind04_03 ==1) ~ 1,   
+#             TRUE ~ 0   ) )
+# df_household$housing  <- labelled::labelled(df_household$housing,
+#   labels = c( 'Deprived' = 0, 'Not Deprived' = 1 ),
+#   label = "Living Standards | Adequate	Housing (floor, roof, walls) v4")
+
+## VERSION 5
+# df_household <- df_household |>
+#           dplyr::mutate(housing = dplyr::case_when(
+#             (ind04_01 ==1 | ind04_02v3 ==1 | ind04_03v2 ==1) ~ 1,   
+#             TRUE ~ 0   ) )
+# df_household$housing  <- labelled::labelled(df_household$housing,
+#   labels = c( 'Deprived' = 0, 'Not Deprived' = 1 ),
+#   label = "Living Standards | Adequate	Housing (floor, roof, walls) v5")
+
+deprivation_profile$housing <- df_household |>
+  define_deprivation(
+    .indicator = housing,
+    .cutoff = housing == 1
+  )
+
+##### INDICADOR 5: OVERCROWDING 
+
+##Hacinamiento
+# Calculate crowding index - overcrowded when more than 2.5 persons per room (using number of rooms in the Household (P105))
+df_household <-  df_household  |>
+  dplyr::mutate(crowding = P15_N/P105 )  |>
+  dplyr::mutate(ind04_04 = dplyr::case_when( 
+    crowding < 2.5 ~ 1, 
+    TRUE ~ 0)
+  )
+df_household$ind04_04  <- labelled::labelled(df_household$ind04_04,
+  labels = c( 'Deprived' = 0, 'Not Deprived' = 1 ),
+  label = "Sufficient Living space | Overcrowding")
+
+# Calculate crowding index - overcrowded when more than 2.5 persons per room (using number of bedrooms in the Household (P106))
+df_household <-  df_household  |>
+  dplyr::mutate(P106vf = dplyr::case_when(
+    P106 > 0 ~ P106, TRUE ~ P105))  |>
+  dplyr::mutate(crowdingv2 = P15_N/P106vf
+  )  |>
+  dplyr::mutate(ind04_04v2 = dplyr::case_when(
+    crowdingv2< 2.5 ~ 1, TRUE ~ 0)
+  )
+
+df_household$ind04_04v2  <- labelled::labelled(df_household$ind04_04v2,
+  labels = c( 'Deprived' = 0, 'Not Deprived' = 1 ),
+  label = "Sufficient Living space | Overcrowding v2")
+
+
+##### INDICADOR 6: COOKING FUEL
+
+#The household cooks with dung, wood, charcoal or coal
+df_household <- df_household |>
+          dplyr::mutate(cooking_fuel = dplyr::case_when(
+            P111 %in% c(1:3) ~ 1,   TRUE ~ 0   ) )
+df_household$cooking_fuel  <- labelled::labelled(df_household$cooking_fuel,
+  labels = c( 'Deprived' = 0, 'Not Deprived' = 1 ),
+  label = "Living Standards |	Cooking fuel")
+
+deprivation_profile$cooking_fuel <- df_household |>
+  define_deprivation(
+    .indicator = cooking_fuel,
+    .cutoff = cooking_fuel == 1
+  )
+
+##### INDICADOR 7: ASSETS
+
+#The household does not own a car or truck and does not own more than one of the following assets: radio, television, telephone, computer, animal cart, bicycle, motorbike or refrigerator
+
+#Adaptamos el cálculo de este indicador. Si los hogares no tienen más de uno de los siguientes activos: 1)TV, 5) Computadora/laptop/tableta, 6) Teleofono celular, 10) Refrigeradora
+
+# PREPROCESSING
+df_household <- df_household  |>
+  dplyr::mutate(P113_1 = ifelse(P113_1==2,0,P113_1)) |>
+  dplyr::mutate(P113_2 = ifelse(P113_2==2,0,P113_2)) |>
+  dplyr::mutate(P113_3 = ifelse(P113_3==2,0,P113_3)) |>
+  dplyr::mutate(P113_4 = ifelse(P113_4==2,0,P113_4)) |>
+  dplyr::mutate(P113_5 = ifelse(P113_5==2,0,P113_5)) |>
+  dplyr::mutate(P113_6 = ifelse(P113_6==2,0,P113_6)) |>
+  dplyr::mutate(P113_7 = ifelse(P113_7==2,0,P113_7)) |>
+  dplyr::mutate(P113_8 = ifelse(P113_8==2,0,P113_8)) |>
+  dplyr::mutate(P113_9 = ifelse(P113_9==2,0,P113_9)) |>
+  dplyr::mutate(P113_10 = ifelse(P113_10==2,0,P113_10))
+
+# Creación de un indicador compuesto que resume la tenencia de: 
+#ENPOVE 2022 1) TV; 5) Computadora / laptop / tableta; 14) Teléfono (fijo o móvil); 8) Radio; 9) Refrigeradora/congeladora
+
+#ENPOVE 2018: 1) TV; 5) Computadora / laptop / tableta; 6) Teleofono celular;                  10) Refrigeradora
+df_household <- df_household  |>
+  dplyr::mutate(P113 = P113_1 + P113_5 + P113_6 + P113_10)
+
+#Household does not owns 3 or more items
+df_household <- df_household |>
+          dplyr::mutate(assets = dplyr::case_when(
+            P113 > 2 ~ 1,   TRUE ~ 0   ) )
+df_household$assets  <- labelled::labelled(df_household$assets,
+  labels = c( 'Deprived' = 0, 'Not Deprived' = 1 ),
+  label = "Living Standards |	Assets (does not owns 3 or more esential items)") 
+
+deprivation_profile$assets <- df_household |>
+  define_deprivation(
+    .indicator = assets,
+    .cutoff = P113 <=2
+  )
+
+#Household does not owns 2 or more items
+df_household <- df_household |>
+          dplyr::mutate(assetsv2 = dplyr::case_when(
+            P113 > 3 ~ 1,   TRUE ~ 0   ) )
+df_household$assetsv2  <- labelled::labelled(df_household$assetsv2,
+  labels = c( 'Deprived' = 0, 'Not Deprived' = 1 ),
+  label = "Living Standards |	Assets (does not owns 2 or more items)") 
+
+
+##### INDICADOR 8: TIPO DE VIVIENDA
+
+## Tipo de vivienda## 
+#Only apartment and house, as in UNHCR RMS indicator DWE01
+#Se utilizó los hogares cuyo tipo de vivienda no sean: 1) Casa independiente o 2) Departamento en edificio
+df_household <- df_household |>
+          dplyr::mutate(ind04_07 = dplyr::case_when(
+            P101 %in% c(1:2) ~ 1,   TRUE ~ 0   ) )
+df_household$ind04_07  <- labelled::labelled(df_household$ind04_07,
+  labels = c( 'Deprived' = 0, 'Not Deprived' = 1 ),
+  label = "Acceptable Accomodation type") 
+
+
+
+# Creación de variable tenencia de algún tipo de teléfono (fijo o móvil)
+df_household_enpove2022 <- df_household_enpove2022 |>
+          dplyr::mutate(P110_14 = dplyr::case_when(
+            P110_6 == 1 | P110_7 == 1 ~ 1,   TRUE ~ 0   ) )
+
+
 # creation of the variable Cooking Fuel based on the answers to "What fuel do you use most frequently at home for cooking?
 df_household_1 <- df_household_1 |>
           dplyr::mutate(P113 = dplyr::case_when(
@@ -2312,83 +2709,43 @@ df_household_1$P113  <- labelled::labelled(df_household_1$P113,
 
 
 
+```
 
-#recode for P207: ¿MIGRÓ DE VENEZUELA?
-df_household_2 <- df_household_2  |>
-  dplyr::mutate(P207 = ifelse(P207==2,0,P207))
 
-df_household_2a <- df_household_2 
 
-#recode of CIUDADES DE ESTUDIO
-recode_cities<-function(df) { 
-  df <- df |>
-  mutate(CIUDADES_DE_ESTUDIO = recode(CIUDADES_DE_ESTUDIO, 
-                                      '1' = 'Lima Norte',
-                                      '2' = 'Lima Este',
-                                      '3' = 'Lima Centro',
-                                      '4' = 'Lima Sur',
-                                      '5' = 'Callao',
-                                      '6' = 'Arequipa',
-                                      '7' = 'Cusco',
-                                      '8' = 'Trujillo',
-                                      '9' = 'Tumbes'))
-  df$CIUDADES_DE_ESTUDIO <- labelled::labelled(df$CIUDADES_DE_ESTUDIO, label = "CIUDADES DE ESTUDIO")
-  return(df)
-  }
+#Household roster preprocessing ENAHO 2022
 
-df_household_1 <- recode_cities(df_household_1)
-df_household_2a <- recode_cities(df_household_2a)
-df_household_4 <- recode_cities(df_household_4)
-df_household_5 <- recode_cities(df_household_5)
-df_household_6 <- recode_cities(df_household_6)
 
-#group by household to create the variables for Total number of household members and Total number of venezuelan household members
-df_household_2 <- df_household_2  |>
-  group_by(CODIGO_HOGAR)  |>
-  summarise(P15_N = n(),
-            P207_sum = sum(P207, na.rm = TRUE),
-            #nmiembros_recod = max(nmiembrosrecod,na.rm = TRUE),
-            #P105_recod = max(P105C,na.rm = TRUE),
-            #P106_recod = max(p106uso,na.rm = TRUE)
-            )
-df_household_2$P15_N  <- labelled::labelled(df_household_2$P15_N,
-  label = "P15_N. Total number of household members")
-df_household_2$P207_sum  <- labelled::labelled(df_household_2$P207_sum,
-  label = "P207_sum. Total number of venezuelan household members")
+```{r df_household_roster_enaho_2022}
 
-# Function to rename the Household id's in each dataframe
-rename_uuid <- function(df) {
-  df <- df |>
-    rename(uuid = CODIGO_HOGAR)
-    if ("CIUDADES_DE_ESTUDIO" %in% colnames(df)) {
-      df <- df |>
-      rename(CIUDAD = CIUDADES_DE_ESTUDIO)
-  }
-  return(df)
-}
+df_household_4 <- read_sav(here::here("data-raw","Enaho01A-2022-400.sav"))
 
-# Applying the function to each dataframe
-df_household_1 <- rename_uuid(df_household_1)
-df_household_2 <- rename_uuid(df_household_2)
-df_household_2a <- rename_uuid(df_household_2a)
-df_household_4 <- rename_uuid(df_household_4)
-df_household_5 <- rename_uuid(df_household_5)
-df_household_6 <- rename_uuid(df_household_6)
+######## DEPURACIÓN DE FILAS 
 
-#merge data at the household level
-df_household <- merge(df_household_1, df_household_2, by = "uuid")
+# We filter out of the analysis the HH where the survey was other than complete and incomplete.
+df_household_1 <- df_household_1  |>
+  dplyr::filter(RESULT <= 2)
 
-#### Filtramos fuera del análisis las personas que no migraron de Venezuela*.
-df_household_2a <- df_household_2a  |>
-  filter(P207 == 1)
+# Create the variable ambito geografico in order to later filter out rural HH's
+df_household_4 <- df_household_4 |>
+  dplyr::mutate(AMBITO = dplyr::case_when(
+    ESTRATO %in% c(1:5) ~ 1,   TRUE ~ 0   ) )
+df_household_4$AMBITO  <- labelled::labelled(df_household_4$AMBITO,
+  labels = c( 'Rural' = 0, 'Urbano' = 1 ),
+  label = "Ambito geográfico (Urbano | Rural)")  
+
+# filter out rural Households
+df_household_4 <- df_household_4  |>
+  dplyr::filter(AMBITO == 1)
+
 
 # Extract common and unique column names
-common_cols <- Reduce(intersect, lapply(list(names(df_household_2a), names(df_household_4), names(df_household_5), names(df_household_6)), as.vector))
+common_cols <- Reduce(intersect, lapply(list(names(df_household_1), names(df_household_2), names(df_household_2a), names(df_household_18)), as.vector))
 
+diff_cols_df1 <- setdiff(names(df_household_1), common_cols)
+diff_cols_df2 <- setdiff(names(df_household_2), common_cols)
 diff_cols_df2a <- setdiff(names(df_household_2a), common_cols)
-diff_cols_df4 <- setdiff(names(df_household_4), common_cols)
-diff_cols_df5 <- setdiff(names(df_household_5), common_cols)
-diff_cols_df6 <- setdiff(names(df_household_6), common_cols)
+diff_cols_df18 <- setdiff(names(df_household_18), common_cols)
 
 # Select only unique columns from each dataframe along with the key variable
 df2a_unique <- df_household_2a %>%
@@ -2426,7 +2783,10 @@ rm(df_household_2a)
 rm(df_household_4)
 rm(df_household_5)
 rm(df_household_6)
+
+
 ```
+
 
 
 
