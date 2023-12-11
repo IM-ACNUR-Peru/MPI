@@ -2436,7 +2436,7 @@ deprivation_profile$drinking_water <- df_household |>
 ##Necesidad de saneamiento = Hogares que no cuentan con conexión a desagüe dentro de la vivienda 
 df_household <- df_household |>
           dplyr::mutate(sanitation = dplyr::case_when(
-            P112 == 1 ~ 1,   TRUE ~ 0   ) )
+            P111A == 1 ~ 1,   TRUE ~ 0   ) )
 df_household$sanitation  <- labelled::labelled(df_household$sanitation,
   labels = c( 'Deprived' = 0, 'Not Deprived' = 1 ),
   label = "Living Standards |	Sanitation")
@@ -2444,7 +2444,7 @@ df_household$sanitation  <- labelled::labelled(df_household$sanitation,
 deprivation_profile$sanitation <- df_household |>
   define_deprivation(
     .indicator = sanitation,
-    .cutoff = P112 == 1
+    .cutoff = P111A == 1
   )
 
 ##### INDICADOR 3: PORCENTAJE DE HOGARES CON NECESIDADES DE ELECTRICIDAD
@@ -2452,7 +2452,7 @@ deprivation_profile$sanitation <- df_household |>
 ##Necesidad de electricidad = Hogares que no cuentan con acceso a alumbrado/electricidad
 df_household <- df_household |>
           dplyr::mutate(electricity = dplyr::case_when(
-            P109 == 1 ~ 1,   TRUE ~ 0   ) )
+            P1121 == 1 ~ 1,   TRUE ~ 0   ) )
 df_household$electricity  <- labelled::labelled(df_household$electricity,
   labels = c( 'Deprived' = 0, 'Not Deprived' = 1 ),
   label = "Living Standards |	Electricity")
@@ -2460,7 +2460,7 @@ df_household$electricity  <- labelled::labelled(df_household$electricity,
 deprivation_profile$electricity <- df_household |>
   define_deprivation(
     .indicator = electricity,
-    .cutoff = P109 == 1
+    .cutoff = P1121 == 1
   )
  
 #######    DIMENSIÓN 4: CONDICIONES DE VIVIENDA ####################
@@ -2619,7 +2619,7 @@ df_household$ind04_04v2  <- labelled::labelled(df_household$ind04_04v2,
 #The household cooks with dung, wood, charcoal or coal
 df_household <- df_household |>
           dplyr::mutate(cooking_fuel = dplyr::case_when(
-            P111 %in% c(1:3) ~ 1,   TRUE ~ 0   ) )
+            P113A %in% c(1:3) ~ 1,   TRUE ~ 0   ) )
 df_household$cooking_fuel  <- labelled::labelled(df_household$cooking_fuel,
   labels = c( 'Deprived' = 0, 'Not Deprived' = 1 ),
   label = "Living Standards |	Cooking fuel")
@@ -2638,28 +2638,38 @@ deprivation_profile$cooking_fuel <- df_household |>
 
 # PREPROCESSING
 df_household <- df_household  |>
-  dplyr::mutate(P113_1 = ifelse(P113_1==2,0,P113_1)) |>
-  dplyr::mutate(P113_2 = ifelse(P113_2==2,0,P113_2)) |>
-  dplyr::mutate(P113_3 = ifelse(P113_3==2,0,P113_3)) |>
-  dplyr::mutate(P113_4 = ifelse(P113_4==2,0,P113_4)) |>
-  dplyr::mutate(P113_5 = ifelse(P113_5==2,0,P113_5)) |>
-  dplyr::mutate(P113_6 = ifelse(P113_6==2,0,P113_6)) |>
-  dplyr::mutate(P113_7 = ifelse(P113_7==2,0,P113_7)) |>
-  dplyr::mutate(P113_8 = ifelse(P113_8==2,0,P113_8)) |>
-  dplyr::mutate(P113_9 = ifelse(P113_9==2,0,P113_9)) |>
-  dplyr::mutate(P113_10 = ifelse(P113_10==2,0,P113_10))
+  dplyr::mutate(P612_1 = ifelse(P612_1==2,0,P612_1)) |>
+  dplyr::mutate(P612_2 = ifelse(P612_2==2,0,P612_2)) |>
+  dplyr::mutate(P612_7 = ifelse(P612_7==2,0,P612_7)) |>
+  dplyr::mutate(P612_12 = ifelse(P612_12==2,0,P612_12)) |>
+  dplyr::mutate(P612_28 = ifelse(P612_28==2,0,P612_28))
 
 # Creación de un indicador compuesto que resume la tenencia de: 
-#ENPOVE 2022 1) TV; 5) Computadora / laptop / tableta; 14) Teléfono (fijo o móvil); 8) Radio; 9) Refrigeradora/congeladora
-
+#ENPOVE 2022: 1) TV; 5) Computadora / laptop / tableta; 14) Teléfono (fijo o móvil); 8) Radio; 9) Refrigeradora/congeladora
 #ENPOVE 2018: 1) TV; 5) Computadora / laptop / tableta; 6) Teleofono celular;                  10) Refrigeradora
+#ENAHO 2022: 1) Radio; 2) TV a color; 7) Computadora/laptop; 12) Regrigeradora/congeladora 28) Tablet
+
+
+# Creación de variable tenencia de algún tipo de teléfono (fijo o móvil)
+# P612_14 = P1141 (Su hogar tiene teléfono fijo) or P1142 (Su hogar tiene teléfono celular)
+df_household <- df_household |>
+          dplyr::mutate(P612_14 = dplyr::case_when(
+            P1141 == 1 | P1142 == 1 ~ 1,   TRUE ~ 0   ) )
+
+# Creación de variable tenencia de Computadora/Laptop/Tablet
+# P612_5 = P612_7 (Su hogar tiene Computadora/Laptop) or P612_28 (Su hogar tiene Tablet)
+df_household <- df_household |>
+          dplyr::mutate(P612_5 = dplyr::case_when(
+            P612_7 == 1 | P612_28 == 1 ~ 1,   TRUE ~ 0   ) )
+
+# Create the variable number of assets
 df_household <- df_household  |>
-  dplyr::mutate(P113 = P113_1 + P113_5 + P113_6 + P113_10)
+  dplyr::mutate(P612 = P612_1 + P612_2 + P612_5 + P612_12 + P612_14)
 
 #Household does not owns 3 or more items
 df_household <- df_household |>
           dplyr::mutate(assets = dplyr::case_when(
-            P113 > 2 ~ 1,   TRUE ~ 0   ) )
+            P612 > 2 ~ 1,   TRUE ~ 0   ) )
 df_household$assets  <- labelled::labelled(df_household$assets,
   labels = c( 'Deprived' = 0, 'Not Deprived' = 1 ),
   label = "Living Standards |	Assets (does not owns 3 or more esential items)") 
@@ -2667,13 +2677,13 @@ df_household$assets  <- labelled::labelled(df_household$assets,
 deprivation_profile$assets <- df_household |>
   define_deprivation(
     .indicator = assets,
-    .cutoff = P113 <=2
+    .cutoff = P612 <=2
   )
 
 #Household does not owns 2 or more items
 df_household <- df_household |>
           dplyr::mutate(assetsv2 = dplyr::case_when(
-            P113 > 3 ~ 1,   TRUE ~ 0   ) )
+            P612 > 3 ~ 1,   TRUE ~ 0   ) )
 df_household$assetsv2  <- labelled::labelled(df_household$assetsv2,
   labels = c( 'Deprived' = 0, 'Not Deprived' = 1 ),
   label = "Living Standards |	Assets (does not owns 2 or more items)") 
@@ -2691,26 +2701,111 @@ df_household$ind04_07  <- labelled::labelled(df_household$ind04_07,
   labels = c( 'Deprived' = 0, 'Not Deprived' = 1 ),
   label = "Acceptable Accomodation type") 
 
-
-
-# Creación de variable tenencia de algún tipo de teléfono (fijo o móvil)
-df_household_enpove2022 <- df_household_enpove2022 |>
-          dplyr::mutate(P110_14 = dplyr::case_when(
-            P110_6 == 1 | P110_7 == 1 ~ 1,   TRUE ~ 0   ) )
-
-
-# creation of the variable Cooking Fuel based on the answers to "What fuel do you use most frequently at home for cooking?
-df_household_1 <- df_household_1 |>
-          dplyr::mutate(P113 = dplyr::case_when(
-            P113A %in% c(1:3) ~ 1,   TRUE ~ 0   ) )
-df_household_1$P113  <- labelled::labelled(df_household_1$P113,
-  labels = c( 'Carbón|Leña|Bosta, estiercol|Otro' = 0, 'Electricidad|Gas (balón GLP)|Gas natural' = 1 ),
-  label = "Combustible que usan en el hogar para cocinar con mayor frecuencia")
-
-
-
 ```
 
+
+
+```{r HogarViz, eval=FALSE}
+
+cross <- c("CIUDAD")
+crosslab <- "CIUDAD"
+# dput(names(df_household))
+data <- df_household |>
+        dplyr::select(CIUDAD, factorfinal , 
+#SEGMENTO,  
+UBIGEO,   uuid,
+drinking_water,  #drinking_waterv2, 
+sanitation,  #sanitationv2,
+electricity,
+#ind04_01,  
+#ind04_02,  #ind04_02v2, #ind04_02v3, 
+#ind04_03,  #ind04_03v2, 
+housing,
+#crowding,  
+ind04_04,  ind04_04v2,  
+#P106vf, crowdingv2, ind04_04v2, 
+cooking_fuel, # P110_14, # P110,        
+assets,  assetsv2, 
+#ind04_07
+ind04_07
+)
+# retrieve value and variable labels
+#data.var <- sjlabelled::get_label(data)
+data.val <-sjlabelled::get_labels(data)
+weight <- as.vector(data$factorfinal)
+
+for (i in 6:ncol(data)) {
+  # i <-5
+  var <- names(data)[i]
+  varlab <- sjlabelled::get_label(data[i])
+  type <- ifelse(lengths(data.val[i]) > 0, 
+                 paste0(" -- Categoric Variable"), 
+                 paste0(" -- Numeric Variable"))
+  #cat(paste0(i, "-", var, "-" ,varlab,"-" ,type,"\n\n"))
+  t <- as.data.frame(table(data[ , i] ))
+  if(nrow(t)>1 ) {
+    ## test if it is numeric or categoric variable
+    if(lengths(data.val[i]) > 0) {
+      # if(nrow(t)< 8) {
+      p <-   sjPlot::plot_xtab(x= data[[i]],
+                               grp = data[[cross]],
+                               type = "bar",
+                               weight.by = weight,
+                               # bar.pos = "stack",
+                              # sort.frq =  "asc",
+                               #show.ci = TRUE,
+                               wrap.labels = 40,
+                               show.total = FALSE,
+                               show.summary = FALSE,
+                               show.prc = FALSE,
+                               summary.pos = "r",
+                               coord.flip = TRUE) +
+        
+        unhcrthemes::theme_unhcr(font_size = 12,
+                                # grid = "Y", axis = "X", axis_title = "y"
+                                  grid = "X",  axis = "Y",  axis_title = "X"
+                                 ) + 
+        ## and the chart labels
+        labs(title = stringr::str_wrap(paste0(varlab) , 70),
+             subtitle = paste0("Cruzado con ", crosslab),
+             x = "",
+             y = "",
+             caption = "Source: ENPOVE 2022 inei.gob.pe microdatos")
+    } else {
+      
+      
+      ## Print an histogram
+      p <-   sjPlot::plot_grpfrq(var.cnt = data[[i]],
+                                 var.grp = data[[cross]],
+                                 type = "bar",
+                                 weight.by = weight,
+                                 # sort.frq =  "asc",
+                                 # bar.pos = "stack",
+                                 wrap.labels = 40,
+                                 show.summary = FALSE,
+                                 show.prc = FALSE,
+                                 show.values = FALSE,
+                                 show.n = FALSE) +
+        
+        unhcrthemes::theme_unhcr(font_size = 12,
+                                 grid = "Y", 
+                                 axis = "X", 
+                                 axis_title = FALSE) + 
+        ## and the chart labels
+        labs(title = stringr::str_wrap(paste0(varlab) , 70),
+             subtitle = paste0("Cruzado con ",crosslab),
+             x = "",
+             y = "",
+             caption = "Source: ENPOVE 2022 inei.gob.pe microdatos")
+    }
+    print(p)
+    #ggsave( paste0("plot/",cross," - ", i, "-",var, ".png"),  plot =  p, device = "png", width = 24, height = 16, units = "cm")
+  } else {
+    cat(paste0("Un solo valor para ", var, "\n"))
+  }
+}
+
+```
 
 
 #Household roster preprocessing ENAHO 2022
