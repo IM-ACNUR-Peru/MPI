@@ -18,4 +18,9 @@ This analysis is performed on based on [__ENCUESTA DIRIGIDA A LA POBLACIÓN VENE
      * CAP 400: https://proyectos.inei.gob.pe/iinei/srienaho/descarga/SPSS/642-Modulo1419.zip
      * CAP 500: https://proyectos.inei.gob.pe/iinei/srienaho/descarga/SPSS/642-Modulo1420.zip
      
- * ENAHO:  https://proyectos.inei.gob.pe/iinei/srienaho/descarga/SPSS/784-Modulo01.zip     
+ * ENAHO data 2022 available here: https://proyectos.inei.gob.pe/microdatos/
+    * CAP 100: [https://proyectos.inei.gob.pe/iinei/srienaho/descarga/SPSS/784-Modulo01.zip](https://proyectos.inei.gob.pe/iinei/srienaho/descarga/SPSS/784-Modulo01.zip)
+    * CAP 200: [https://proyectos.inei.gob.pe/iinei/srienaho/descarga/SPSS/784-Modulo02.zip](https://proyectos.inei.gob.pe/iinei/srienaho/descarga/SPSS/784-Modulo02.zip)
+    * CAP 300: [https://proyectos.inei.gob.pe/iinei/srienaho/descarga/SPSS/784-Modulo03.zip](https://proyectos.inei.gob.pe/iinei/srienaho/descarga/SPSS/784-Modulo03.zip)
+    * CAP 400: [https://proyectos.inei.gob.pe/iinei/srienaho/descarga/SPSS/784-Modulo04.zip](https://proyectos.inei.gob.pe/iinei/srienaho/descarga/SPSS/784-Modulo04.zip)
+    * CAP 1800: [https://proyectos.inei.gob.pe/iinei/srienaho/descarga/SPSS/784-Modulo18.zip](https://proyectos.inei.gob.pe/iinei/srienaho/descarga/SPSS/784-Modulo18.zip)
