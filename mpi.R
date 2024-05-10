@@ -328,25 +328,56 @@ enpove2018_mpi_data <-
 #             across(connectivity_participation:connectivity_ict, \(x) weighted.mean(x, hhwt, na.rm = TRUE))) |> 
 #   pivot_longer(everything(), names_to = c("dim", "ind"), names_sep = "_", values_to = "p")
 
+
 enpove2018_mpi_stats <- 
   enpove2018_mpi_data |> 
-  summarize(across(health_access:health_insurance, \(x) weighted.mean(x, hhwt, na.rm = TRUE)),
-            education_participation = weighted.mean(education_participation, hhwt*between(age,5,19), na.rm = TRUE),
-            education_attainment = weighted.mean(education_attainment, hhwt*(age>=20), na.rm = TRUE),
-            across(housing_structure:energy_fuel, \(x) weighted.mean(x, hhwt, na.rm = TRUE)),
-            across(employment_employment:employment_contract, \(x) weighted.mean(x, hhwt*(age>=14), na.rm = TRUE)),
-            across(connectivity_participation:connectivity_ict, \(x) weighted.mean(x, hhwt, na.rm = TRUE))) |> 
-  pivot_longer(everything(), names_to = c("dim", "ind"), names_sep = "_", values_to = "p")
+  mutate(across(health_access:health_insurance, list(num = ~sum(hhwt * ., na.rm = TRUE), denom = ~sum(hhwt, na.rm = TRUE), mean = ~weighted.mean(., w = hhwt, na.rm = TRUE)), .names = "{.col}_{.fn}")) |> 
+  mutate(across(education_participation, list(num = ~sum(hhwt * between(age,5,19) * ., na.rm = TRUE), denom = ~sum(hhwt * between(age,5,19), na.rm = TRUE), mean = ~weighted.mean(., hhwt*between(age,5,19), na.rm = TRUE)), .names = "{.col}_{.fn}")) |> 
+  mutate(across(education_attainment, list(num = ~sum(hhwt * (age>=20) * ., na.rm = TRUE), denom = ~sum(hhwt * (age>=20), na.rm = TRUE), mean = ~weighted.mean(., hhwt * (age>=20), na.rm = TRUE)), .names = "{.col}_{.fn}")) |>
+  mutate(across(housing_structure:energy_fuel, list(num = ~sum(hhwt * ., na.rm = TRUE), denom = ~sum(hhwt, na.rm = TRUE), mean = ~weighted.mean(., w = hhwt, na.rm = TRUE)), .names = "{.col}_{.fn}")) |> 
+  mutate(across(employment_employment:employment_contract, list(num = ~sum(hhwt * (age>=14) * ., na.rm = TRUE), denom = ~sum(hhwt * (age>=14), na.rm = TRUE), mean = ~weighted.mean(., hhwt * (age>=14), na.rm = TRUE)), .names = "{.col}_{.fn}")) |>
+  mutate(across(connectivity_participation:connectivity_ict, list(num = ~sum(hhwt * ., na.rm = TRUE), denom = ~sum(hhwt, na.rm = TRUE), mean = ~weighted.mean(., w = hhwt, na.rm = TRUE)), .names = "{.col}_{.fn}")) |> 
+  slice(1) |> 
+  select(ends_with(c("_mean", "_denom", "_num"))) |> 
+  mutate(across(ends_with("num"), ~ round(., 2))) |> 
+  mutate(across(ends_with("denom"), ~ round(., 2))) |> 
+  pivot_longer(everything(), names_to = c("dim", "ind", "type"), names_sep = "_", values_to = "p")
+  
+
+# enpove2018_mpi_stats <- 
+#   enpove2018_mpi_data |> 
+#   summarize(across(health_access:health_insurance, \(x) weighted.mean(x, hhwt, na.rm = TRUE)),
+#             education_participation = weighted.mean(education_participation, hhwt*between(age,5,19), na.rm = TRUE),
+#             education_attainment = weighted.mean(education_attainment, hhwt*(age>=20), na.rm = TRUE),
+#             across(housing_structure:energy_fuel, \(x) weighted.mean(x, hhwt, na.rm = TRUE)),
+#             across(employment_employment:employment_contract, \(x) weighted.mean(x, hhwt*(age>=14), na.rm = TRUE)),
+#             across(connectivity_participation:connectivity_ict, \(x) weighted.mean(x, hhwt, na.rm = TRUE))) |> 
+#   pivot_longer(everything(), names_to = c("dim", "ind"), names_sep = "_", values_to = "p")
 
 enpove2022_mpi_stats <- 
   enpove2022_mpi_data |> 
-  summarize(across(health_access:health_insurance, \(x) weighted.mean(x, hhwt, na.rm = TRUE)),
-            education_participation = weighted.mean(education_participation, hhwt*between(age,5,19), na.rm = TRUE),
-            education_attainment = weighted.mean(education_attainment, hhwt*(age>=20), na.rm = TRUE),
-            across(housing_structure:energy_fuel, \(x) weighted.mean(x, hhwt, na.rm = TRUE)),
-            across(employment_employment:employment_contract, \(x) weighted.mean(x, hhwt*(age>=14), na.rm = TRUE)),
-            across(connectivity_participation:connectivity_ict, \(x) weighted.mean(x, hhwt, na.rm = TRUE))) |> 
-  pivot_longer(everything(), names_to = c("dim", "ind"), names_sep = "_", values_to = "p")
+  mutate(across(health_access:health_insurance, list(num = ~sum(hhwt * ., na.rm = TRUE), denom = ~sum(hhwt, na.rm = TRUE), mean = ~weighted.mean(., w = hhwt, na.rm = TRUE)), .names = "{.col}_{.fn}")) |> 
+  mutate(across(education_participation, list(num = ~sum(hhwt * between(age,5,19) * ., na.rm = TRUE), denom = ~sum(hhwt * between(age,5,19), na.rm = TRUE), mean = ~weighted.mean(., hhwt*between(age,5,19), na.rm = TRUE)), .names = "{.col}_{.fn}")) |> 
+  mutate(across(education_attainment, list(num = ~sum(hhwt * (age>=20) * ., na.rm = TRUE), denom = ~sum(hhwt * (age>=20), na.rm = TRUE), mean = ~weighted.mean(., hhwt * (age>=20), na.rm = TRUE)), .names = "{.col}_{.fn}")) |>
+  mutate(across(housing_structure:energy_fuel, list(num = ~sum(hhwt * ., na.rm = TRUE), denom = ~sum(hhwt, na.rm = TRUE), mean = ~weighted.mean(., w = hhwt, na.rm = TRUE)), .names = "{.col}_{.fn}")) |> 
+  mutate(across(employment_employment:employment_contract, list(num = ~sum(hhwt * (age>=14) * ., na.rm = TRUE), denom = ~sum(hhwt * (age>=14), na.rm = TRUE), mean = ~weighted.mean(., hhwt * (age>=14), na.rm = TRUE)), .names = "{.col}_{.fn}")) |>
+  mutate(across(connectivity_participation:connectivity_ict, list(num = ~sum(hhwt * ., na.rm = TRUE), denom = ~sum(hhwt, na.rm = TRUE), mean = ~weighted.mean(., w = hhwt, na.rm = TRUE)), .names = "{.col}_{.fn}")) |> 
+  slice(1) |> 
+  select(ends_with(c("_mean", "_denom", "_num"))) |> 
+  mutate(across(ends_with("num"), ~ round(., 2))) |> 
+  mutate(across(ends_with("denom"), ~ round(., 2))) |> 
+  pivot_longer(everything(), names_to = c("dim", "ind", "type"), names_sep = "_", values_to = "p")
+
+
+# enpove2022_mpi_stats <-
+#   enpove2022_mpi_data |>
+#   summarize(across(health_access:health_insurance, \(x) weighted.mean(x, hhwt, na.rm = TRUE)),
+#             education_participation = weighted.mean(education_participation, hhwt*between(age,5,19), na.rm = TRUE),
+#             education_attainment = weighted.mean(education_attainment, hhwt*(age>=20), na.rm = TRUE),
+#             across(housing_structure:energy_fuel, \(x) weighted.mean(x, hhwt, na.rm = TRUE)),
+#             across(employment_employment:employment_contract, \(x) weighted.mean(x, hhwt*(age>=14), na.rm = TRUE)),
+#             across(connectivity_participation:connectivity_ict, \(x) weighted.mean(x, hhwt, na.rm = TRUE))) |>
+#   pivot_longer(everything(), names_to = c("dim", "ind"), names_sep = "_", values_to = "p")
 
 mpi_stats <- 
   bind_rows("2018" = enpove2018_mpi_stats, 
@@ -376,11 +407,20 @@ mpi_stats <-
   mutate(across('ind', str_replace, 'employment', '01Empleo')) |> 
   mutate(across('ind', str_replace, 'contract', '02Formalidad')) |> 
   mutate(across('ind', str_replace, 'ict', '02Tecnología de la información y la comunicación')) |> 
-  arrange(dim, ind) 
+  arrange(dim, ind) |> 
+  mutate(across(c(dim, ind), ~str_remove_all(., "[01234567]"))) |> 
+  group_by(ENPOVE, dim, ind) |> 
+  pivot_wider(names_from = type, values_from = p) |> 
+  mutate(num = round(num, digits = 2)) |> 
+  mutate(denom = round(denom, digits = 2)) |> 
+  relocate(num, .before = denom)
+
 
 # Chart 1
 mpi_stats |> 
-    ggplot() +
+  select(ENPOVE:mean) |> 
+  rename(p = mean) |> 
+  ggplot() +
   geom_col(aes(p, ind, fill = ENPOVE), 
            position = position_dodge(width = 0.7),
            width = 0.6) +
@@ -410,49 +450,64 @@ mpi_stats |>
         strip.text = element_text(face = "bold")
         )
 
-# saved manually after playing around with the resolution...
-
-#mpi_stats |> write_xlsx("out/ven_2022_vs_2018.xlsx", format_headers = FALSE)
+# mpi_stats |> write_xlsx("Chart_1.xlsx", format_headers = FALSE)
 
 # MPI dashboard (disaggregated) ----
 # ENPOVE first
+
 enpove2022_mpi_genpop <- 
   enpove2022_mpi_data |> 
-  summarize(across(health_access:health_insurance, \(x) weighted.mean(x, hhwt, na.rm = TRUE)),
-            education_participation = weighted.mean(education_participation, hhwt*between(age,5,19), na.rm = TRUE),
-            education_attainment = weighted.mean(education_attainment, hhwt*(age>=20), na.rm = TRUE),
-            across(housing_structure:energy_fuel, \(x) weighted.mean(x, hhwt, na.rm = TRUE)),
-            across(employment_employment:employment_contract, \(x) weighted.mean(x, hhwt*(age>=14), na.rm = TRUE)),
-            across(connectivity_participation:connectivity_ict, \(x) weighted.mean(x, hhwt, na.rm = TRUE))) |> 
-  pivot_longer(everything(), names_to = c("dim", "ind"), names_sep = "_", values_to = "total")
+  mutate(across(health_access:health_insurance, list(num = ~sum(hhwt * ., na.rm = TRUE), denom = ~sum(hhwt, na.rm = TRUE), mean = ~weighted.mean(., w = hhwt, na.rm = TRUE)), .names = "{.col}_{.fn}")) |> 
+  mutate(across(education_participation, list(num = ~sum(hhwt * between(age,5,19) * ., na.rm = TRUE), denom = ~sum(hhwt * between(age,5,19), na.rm = TRUE), mean = ~weighted.mean(., hhwt*between(age,5,19), na.rm = TRUE)), .names = "{.col}_{.fn}")) |> 
+  mutate(across(education_attainment, list(num = ~sum(hhwt * (age>=20) * ., na.rm = TRUE), denom = ~sum(hhwt * (age>=20), na.rm = TRUE), mean = ~weighted.mean(., hhwt * (age>=20), na.rm = TRUE)), .names = "{.col}_{.fn}")) |>
+  mutate(across(housing_structure:energy_fuel, list(num = ~sum(hhwt * ., na.rm = TRUE), denom = ~sum(hhwt, na.rm = TRUE), mean = ~weighted.mean(., w = hhwt, na.rm = TRUE)), .names = "{.col}_{.fn}")) |> 
+  mutate(across(employment_employment:employment_contract, list(num = ~sum(hhwt * (age>=14) * ., na.rm = TRUE), denom = ~sum(hhwt * (age>=14), na.rm = TRUE), mean = ~weighted.mean(., hhwt * (age>=14), na.rm = TRUE)), .names = "{.col}_{.fn}")) |>
+  mutate(across(connectivity_participation:connectivity_ict, list(num = ~sum(hhwt * ., na.rm = TRUE), denom = ~sum(hhwt, na.rm = TRUE), mean = ~weighted.mean(., w = hhwt, na.rm = TRUE)), .names = "{.col}_{.fn}")) |> 
+  slice(1) |> 
+  select(ends_with(c("_mean", "_denom", "_num"))) |> 
+  mutate(across(ends_with("num"), ~ round(., 2))) |> 
+  mutate(across(ends_with("denom"), ~ round(., 2))) |> 
+  pivot_longer(everything(), names_to = c("dim", "ind", "type"), names_sep = "_", values_to = "total")
+
 
 enpove2022_mpi_sex <- 
   enpove2022_mpi_data |> 
   mutate(sex = if_else(sex == 1, "sex_M", "sex_F")) |> 
-  summarize(across(health_access:health_insurance, \(x) weighted.mean(x, hhwt, na.rm = TRUE)),
-            education_participation = weighted.mean(education_participation, hhwt*between(age,5,19), na.rm = TRUE),
-            education_attainment = weighted.mean(education_attainment, hhwt*(age>=20), na.rm = TRUE),
-            across(housing_structure:energy_fuel, \(x) weighted.mean(x, hhwt, na.rm = TRUE)),
-            across(employment_employment:employment_contract, \(x) weighted.mean(x, hhwt*(age>=14), na.rm = TRUE)),
-            across(connectivity_participation:connectivity_ict, \(x) weighted.mean(x, hhwt, na.rm = TRUE)),
-            .by = sex) |> 
-  pivot_longer(-1, names_to = c("dim", "ind"), names_sep = "_", values_to = "p") |> 
+  mutate(across(health_access:health_insurance, list(num = ~sum(hhwt * ., na.rm = TRUE), denom = ~sum(hhwt, na.rm = TRUE), mean = ~weighted.mean(., w = hhwt, na.rm = TRUE)), .names = "{.col}_{.fn}"), .by = sex) |> 
+  mutate(across(education_participation, list(num = ~sum(hhwt * between(age,5,19) * ., na.rm = TRUE), denom = ~sum(hhwt * between(age,5,19), na.rm = TRUE), mean = ~weighted.mean(., hhwt*between(age,5,19), na.rm = TRUE)), .names = "{.col}_{.fn}"), .by = sex) |> 
+  mutate(across(education_attainment, list(num = ~sum(hhwt * (age>=20) * ., na.rm = TRUE), denom = ~sum(hhwt * (age>=20), na.rm = TRUE), mean = ~weighted.mean(., hhwt * (age>=20), na.rm = TRUE)), .names = "{.col}_{.fn}"), .by = sex) |>
+  mutate(across(housing_structure:energy_fuel, list(num = ~sum(hhwt * ., na.rm = TRUE), denom = ~sum(hhwt, na.rm = TRUE), mean = ~weighted.mean(., w = hhwt, na.rm = TRUE)), .names = "{.col}_{.fn}"), .by = sex) |> 
+  mutate(across(employment_employment:employment_contract, list(num = ~sum(hhwt * (age>=14) * ., na.rm = TRUE), denom = ~sum(hhwt * (age>=14), na.rm = TRUE), mean = ~weighted.mean(., hhwt * (age>=14), na.rm = TRUE)), .names = "{.col}_{.fn}"), .by = sex) |>
+  mutate(across(connectivity_participation:connectivity_ict, list(num = ~sum(hhwt * ., na.rm = TRUE), denom = ~sum(hhwt, na.rm = TRUE), mean = ~weighted.mean(., w = hhwt, na.rm = TRUE)), .names = "{.col}_{.fn}"), .by = sex) |> 
+  group_by(sex) |> 
+  arrange(sex) |> 
+  filter(row_number()==1) |>   
+  select(sex, ends_with(c("_mean", "_denom", "_num"))) |> 
+  mutate(across(ends_with("num"), ~ round(., 2))) |> 
+  mutate(across(ends_with("denom"), ~ round(., 2))) |> 
+  pivot_longer(-1, names_to = c("dim", "ind", "type"), names_sep = "_", values_to = "p") |> 
   pivot_wider(names_from = sex, values_from = p)
+
 
 enpove2022_mpi_loc <- 
   enpove2022_mpi_data |> 
   mutate(location = if_else(location == "Lima Metro", "location_Lima", "location_Other")) |> 
-  summarize(across(health_access:health_insurance, \(x) weighted.mean(x, hhwt, na.rm = TRUE)),
-            education_participation = weighted.mean(education_participation, hhwt*between(age,5,19), na.rm = TRUE),
-            education_attainment = weighted.mean(education_attainment, hhwt*(age>=20), na.rm = TRUE),
-            across(housing_structure:energy_fuel, \(x) weighted.mean(x, hhwt, na.rm = TRUE)),
-            across(employment_employment:employment_contract, \(x) weighted.mean(x, hhwt*(age>=14), na.rm = TRUE)),
-            across(connectivity_participation:connectivity_ict, \(x) weighted.mean(x, hhwt, na.rm = TRUE)),
-            .by = location) |> 
-  pivot_longer(-1, names_to = c("dim", "ind"), names_sep = "_", values_to = "p") |> 
+  mutate(across(health_access:health_insurance, list(num = ~sum(hhwt * ., na.rm = TRUE), denom = ~sum(hhwt, na.rm = TRUE), mean = ~weighted.mean(., w = hhwt, na.rm = TRUE)), .names = "{.col}_{.fn}"), .by = location) |> 
+  mutate(across(education_participation, list(num = ~sum(hhwt * between(age,5,19) * ., na.rm = TRUE), denom = ~sum(hhwt * between(age,5,19), na.rm = TRUE), mean = ~weighted.mean(., hhwt*between(age,5,19), na.rm = TRUE)), .names = "{.col}_{.fn}"), .by = location) |> 
+  mutate(across(education_attainment, list(num = ~sum(hhwt * (age>=20) * ., na.rm = TRUE), denom = ~sum(hhwt * (age>=20), na.rm = TRUE), mean = ~weighted.mean(., hhwt * (age>=20), na.rm = TRUE)), .names = "{.col}_{.fn}"), .by = location) |>
+  mutate(across(housing_structure:energy_fuel, list(num = ~sum(hhwt * ., na.rm = TRUE), denom = ~sum(hhwt, na.rm = TRUE), mean = ~weighted.mean(., w = hhwt, na.rm = TRUE)), .names = "{.col}_{.fn}"), .by = location) |> 
+  mutate(across(employment_employment:employment_contract, list(num = ~sum(hhwt * (age>=14) * ., na.rm = TRUE), denom = ~sum(hhwt * (age>=14), na.rm = TRUE), mean = ~weighted.mean(., hhwt * (age>=14), na.rm = TRUE)), .names = "{.col}_{.fn}"), .by = location) |>
+  mutate(across(connectivity_participation:connectivity_ict, list(num = ~sum(hhwt * ., na.rm = TRUE), denom = ~sum(hhwt, na.rm = TRUE), mean = ~weighted.mean(., w = hhwt, na.rm = TRUE)), .names = "{.col}_{.fn}"), .by = location) |> 
+  group_by(location) |> 
+  arrange(location) |> 
+  filter(row_number()==1) |> 
+  select(location, ends_with(c("_mean", "_denom", "_num"))) |> 
+  mutate(across(ends_with("num"), ~ round(., 2))) |> 
+  mutate(across(ends_with("denom"), ~ round(., 2))) |> 
+  pivot_longer(-1, names_to = c("dim", "ind", "type"), names_sep = "_", values_to = "p") |> 
   pivot_wider(names_from = location, values_from = p) |> 
   relocate(location_Lima, .before = location_Other)
-
+  
 enpove2022_mpi_age <- 
   enpove2022_mpi_data |> 
   mutate(agegrp = case_when(between(age, 0, 4) ~ "0-4",
@@ -460,17 +515,23 @@ enpove2022_mpi_age <-
                          between(age, 18, 59) ~ "18-59",
                          age >= 60 ~ "60+"),
          agegrp = str_c("age", agegrp, sep = "_")) |> 
-  summarize(across(health_access:health_insurance, \(x) weighted.mean(x, hhwt, na.rm = TRUE)),
-            education_participation = weighted.mean(education_participation, hhwt*between(age,5,19), na.rm = TRUE),
-            education_attainment = weighted.mean(education_attainment, hhwt*(age>=20), na.rm = TRUE),
-            across(housing_structure:energy_fuel, \(x) weighted.mean(x, hhwt, na.rm = TRUE)),
-            across(employment_employment:employment_contract, \(x) weighted.mean(x, hhwt*(age>=14), na.rm = TRUE)),
-            across(connectivity_participation:connectivity_ict, \(x) weighted.mean(x, hhwt, na.rm = TRUE)),
-            .by = agegrp) |> 
-  pivot_longer(-1, names_to = c("dim", "ind"), names_sep = "_", values_to = "p") |> 
+  mutate(across(health_access:health_insurance, list(num = ~sum(hhwt * ., na.rm = TRUE), denom = ~sum(hhwt, na.rm = TRUE), mean = ~weighted.mean(., w = hhwt, na.rm = TRUE)), .names = "{.col}_{.fn}"), .by = agegrp) |> 
+  mutate(across(education_participation, list(num = ~sum(hhwt * between(age,5,19) * ., na.rm = TRUE), denom = ~sum(hhwt * between(age,5,19), na.rm = TRUE), mean = ~weighted.mean(., hhwt*between(age,5,19), na.rm = TRUE)), .names = "{.col}_{.fn}"), .by = agegrp) |> 
+  mutate(across(education_attainment, list(num = ~sum(hhwt * (age>=20) * ., na.rm = TRUE), denom = ~sum(hhwt * (age>=20), na.rm = TRUE), mean = ~weighted.mean(., hhwt * (age>=20), na.rm = TRUE)), .names = "{.col}_{.fn}"), .by = agegrp) |>
+  mutate(across(housing_structure:energy_fuel, list(num = ~sum(hhwt * ., na.rm = TRUE), denom = ~sum(hhwt, na.rm = TRUE), mean = ~weighted.mean(., w = hhwt, na.rm = TRUE)), .names = "{.col}_{.fn}"), .by = agegrp) |> 
+  mutate(across(employment_employment:employment_contract, list(num = ~sum(hhwt * (age>=14) * ., na.rm = TRUE), denom = ~sum(hhwt * (age>=14), na.rm = TRUE), mean = ~weighted.mean(., hhwt * (age>=14), na.rm = TRUE)), .names = "{.col}_{.fn}"), .by = agegrp) |>
+  mutate(across(connectivity_participation:connectivity_ict, list(num = ~sum(hhwt * ., na.rm = TRUE), denom = ~sum(hhwt, na.rm = TRUE), mean = ~weighted.mean(., w = hhwt, na.rm = TRUE)), .names = "{.col}_{.fn}"), .by = agegrp) |> 
+  group_by(agegrp) |> 
+  arrange(agegrp) |> 
+  filter(row_number()==1) |> 
+  select(agegrp, ends_with(c("_mean", "_denom", "_num"))) |> 
+  mutate(across(ends_with("num"), ~ round(., 2))) |> 
+  mutate(across(ends_with("denom"), ~ round(., 2))) |> 
+  pivot_longer(-1, names_to = c("dim", "ind", "type"), names_sep = "_", values_to = "p") |> 
   pivot_wider(names_from = agegrp, values_from = p) |> 
   mutate(across(starts_with("age"), \(x) if_else(dim %in% c("education", "employment"), NA, x))) |> 
-  select(dim, ind, `age_0-4`, `age_5-17`, `age_18-59`, `age_60+`)
+  select(dim, ind, type, `age_0-4`, `age_5-17`, `age_18-59`, `age_60+`)
+  
 
 enpove2022_mpi_dashboard <- 
   list(enpove2022_mpi_genpop, enpove2022_mpi_loc, enpove2022_mpi_sex, enpove2022_mpi_age) |> 
@@ -479,40 +540,57 @@ enpove2022_mpi_dashboard <-
 # And now ENAHO
 enaho2022_mpi_genpop <- 
   enaho2022_mpi_data |> 
-  summarize(across(health_access:health_insurance, \(x) weighted.mean(x, hhwt, na.rm = TRUE)),
-            education_participation = weighted.mean(education_participation, hhwt*between(age,5,19), na.rm = TRUE),
-            education_attainment = weighted.mean(education_attainment, hhwt*(age>=20), na.rm = TRUE),
-            across(housing_structure:energy_fuel, \(x) weighted.mean(x, hhwt, na.rm = TRUE)),
-            across(employment_employment:employment_contract, \(x) weighted.mean(x, hhwt*(age>=14), na.rm = TRUE)),
-            across(connectivity_participation:connectivity_ict, \(x) weighted.mean(x, hhwt, na.rm = TRUE))) |> 
-  pivot_longer(everything(), names_to = c("dim", "ind"), names_sep = "_", values_to = "total")
+  mutate(across(health_access:health_insurance, list(num = ~sum(hhwt * ., na.rm = TRUE), denom = ~sum(hhwt, na.rm = TRUE), mean = ~weighted.mean(., w = hhwt, na.rm = TRUE)), .names = "{.col}_{.fn}")) |> 
+  mutate(across(education_participation, list(num = ~sum(hhwt * between(age,5,19) * ., na.rm = TRUE), denom = ~sum(hhwt * between(age,5,19), na.rm = TRUE), mean = ~weighted.mean(., hhwt*between(age,5,19), na.rm = TRUE)), .names = "{.col}_{.fn}")) |> 
+  mutate(across(education_attainment, list(num = ~sum(hhwt * (age>=20) * ., na.rm = TRUE), denom = ~sum(hhwt * (age>=20), na.rm = TRUE), mean = ~weighted.mean(., hhwt * (age>=20), na.rm = TRUE)), .names = "{.col}_{.fn}")) |>
+  mutate(across(housing_structure:energy_fuel, list(num = ~sum(hhwt * ., na.rm = TRUE), denom = ~sum(hhwt, na.rm = TRUE), mean = ~weighted.mean(., w = hhwt, na.rm = TRUE)), .names = "{.col}_{.fn}")) |> 
+  mutate(across(employment_employment:employment_contract, list(num = ~sum(hhwt * (age>=14) * ., na.rm = TRUE), denom = ~sum(hhwt * (age>=14), na.rm = TRUE), mean = ~weighted.mean(., hhwt * (age>=14), na.rm = TRUE)), .names = "{.col}_{.fn}")) |>
+  mutate(across(connectivity_participation:connectivity_ict, list(num = ~sum(hhwt * ., na.rm = TRUE), denom = ~sum(hhwt, na.rm = TRUE), mean = ~weighted.mean(., w = hhwt, na.rm = TRUE)), .names = "{.col}_{.fn}")) |> 
+  slice(1) |> 
+  select(ends_with(c("_mean", "_denom", "_num"))) |> 
+  mutate(across(ends_with("num"), ~ round(., 2))) |> 
+  mutate(across(ends_with("denom"), ~ round(., 2))) |> 
+  pivot_longer(everything(), names_to = c("dim", "ind", "type"), names_sep = "_", values_to = "total")
+
 
 enaho2022_mpi_sex <- 
   enaho2022_mpi_data |> 
   mutate(sex = if_else(sex == 1, "sex_M", "sex_F")) |> 
-  summarize(across(health_access:health_insurance, \(x) weighted.mean(x, hhwt, na.rm = TRUE)),
-            education_participation = weighted.mean(education_participation, hhwt*between(age,5,19), na.rm = TRUE),
-            education_attainment = weighted.mean(education_attainment, hhwt*(age>=20), na.rm = TRUE),
-            across(housing_structure:energy_fuel, \(x) weighted.mean(x, hhwt, na.rm = TRUE)),
-            across(employment_employment:employment_contract, \(x) weighted.mean(x, hhwt*(age>=14), na.rm = TRUE)),
-            across(connectivity_participation:connectivity_ict, \(x) weighted.mean(x, hhwt, na.rm = TRUE)),
-            .by = sex) |> 
-  pivot_longer(-1, names_to = c("dim", "ind"), names_sep = "_", values_to = "p") |> 
+  mutate(across(health_access:health_insurance, list(num = ~sum(hhwt * ., na.rm = TRUE), denom = ~sum(hhwt, na.rm = TRUE), mean = ~weighted.mean(., w = hhwt, na.rm = TRUE)), .names = "{.col}_{.fn}"), .by = sex) |> 
+  mutate(across(education_participation, list(num = ~sum(hhwt * between(age,5,19) * ., na.rm = TRUE), denom = ~sum(hhwt * between(age,5,19), na.rm = TRUE), mean = ~weighted.mean(., hhwt*between(age,5,19), na.rm = TRUE)), .names = "{.col}_{.fn}"), .by = sex) |> 
+  mutate(across(education_attainment, list(num = ~sum(hhwt * (age>=20) * ., na.rm = TRUE), denom = ~sum(hhwt * (age>=20), na.rm = TRUE), mean = ~weighted.mean(., hhwt * (age>=20), na.rm = TRUE)), .names = "{.col}_{.fn}"), .by = sex) |>
+  mutate(across(housing_structure:energy_fuel, list(num = ~sum(hhwt * ., na.rm = TRUE), denom = ~sum(hhwt, na.rm = TRUE), mean = ~weighted.mean(., w = hhwt, na.rm = TRUE)), .names = "{.col}_{.fn}"), .by = sex) |> 
+  mutate(across(employment_employment:employment_contract, list(num = ~sum(hhwt * (age>=14) * ., na.rm = TRUE), denom = ~sum(hhwt * (age>=14), na.rm = TRUE), mean = ~weighted.mean(., hhwt * (age>=14), na.rm = TRUE)), .names = "{.col}_{.fn}"), .by = sex) |>
+  mutate(across(connectivity_participation:connectivity_ict, list(num = ~sum(hhwt * ., na.rm = TRUE), denom = ~sum(hhwt, na.rm = TRUE), mean = ~weighted.mean(., w = hhwt, na.rm = TRUE)), .names = "{.col}_{.fn}"), .by = sex) |> 
+  group_by(sex) |> 
+  arrange(sex) |> 
+  filter(row_number()==1) |>   
+  select(sex, ends_with(c("_mean", "_num", "_denom"))) |> 
+  mutate(across(ends_with("num"), ~ round(., 2))) |> 
+  mutate(across(ends_with("denom"), ~ round(., 2))) |> 
+  pivot_longer(-1, names_to = c("dim", "ind", "type"), names_sep = "_", values_to = "p") |> 
   pivot_wider(names_from = sex, values_from = p)
-
+  
+  
 enaho2022_mpi_loc <- 
   enaho2022_mpi_data |> 
   mutate(location = if_else(location == "Lima Metro", "location_Lima", "location_Other")) |> 
-  summarize(across(health_access:health_insurance, \(x) weighted.mean(x, hhwt, na.rm = TRUE)),
-            education_participation = weighted.mean(education_participation, hhwt*between(age,5,19), na.rm = TRUE),
-            education_attainment = weighted.mean(education_attainment, hhwt*(age>=20), na.rm = TRUE),
-            across(housing_structure:energy_fuel, \(x) weighted.mean(x, hhwt, na.rm = TRUE)),
-            across(employment_employment:employment_contract, \(x) weighted.mean(x, hhwt*(age>=14), na.rm = TRUE)),
-            across(connectivity_participation:connectivity_ict, \(x) weighted.mean(x, hhwt, na.rm = TRUE)),
-            .by = location) |> 
-  pivot_longer(-1, names_to = c("dim", "ind"), names_sep = "_", values_to = "p") |> 
+  mutate(across(health_access:health_insurance, list(num = ~sum(hhwt * ., na.rm = TRUE), denom = ~sum(hhwt, na.rm = TRUE), mean = ~weighted.mean(., w = hhwt, na.rm = TRUE)), .names = "{.col}_{.fn}"), .by = location) |> 
+  mutate(across(education_participation, list(num = ~sum(hhwt * between(age,5,19) * ., na.rm = TRUE), denom = ~sum(hhwt * between(age,5,19), na.rm = TRUE), mean = ~weighted.mean(., hhwt*between(age,5,19), na.rm = TRUE)), .names = "{.col}_{.fn}"), .by = location) |> 
+  mutate(across(education_attainment, list(num = ~sum(hhwt * (age>=20) * ., na.rm = TRUE), denom = ~sum(hhwt * (age>=20), na.rm = TRUE), mean = ~weighted.mean(., hhwt * (age>=20), na.rm = TRUE)), .names = "{.col}_{.fn}"), .by = location) |>
+  mutate(across(housing_structure:energy_fuel, list(num = ~sum(hhwt * ., na.rm = TRUE), denom = ~sum(hhwt, na.rm = TRUE), mean = ~weighted.mean(., w = hhwt, na.rm = TRUE)), .names = "{.col}_{.fn}"), .by = location) |> 
+  mutate(across(employment_employment:employment_contract, list(num = ~sum(hhwt * (age>=14) * ., na.rm = TRUE), denom = ~sum(hhwt * (age>=14), na.rm = TRUE), mean = ~weighted.mean(., hhwt * (age>=14), na.rm = TRUE)), .names = "{.col}_{.fn}"), .by = location) |>
+  mutate(across(connectivity_participation:connectivity_ict, list(num = ~sum(hhwt * ., na.rm = TRUE), denom = ~sum(hhwt, na.rm = TRUE), mean = ~weighted.mean(., w = hhwt, na.rm = TRUE)), .names = "{.col}_{.fn}"), .by = location) |> 
+  group_by(location) |> 
+  arrange(location) |> 
+  filter(row_number()==1) |> 
+  select(location, ends_with(c("_mean", "_num", "_denom"))) |> 
+  mutate(across(ends_with("num"), ~ round(., 2))) |> 
+  mutate(across(ends_with("denom"), ~ round(., 2))) |> 
+  pivot_longer(-1, names_to = c("dim", "ind", "type"), names_sep = "_", values_to = "p") |> 
   pivot_wider(names_from = location, values_from = p) |> 
   relocate(location_Lima, .before = location_Other)
+  
 
 enaho2022_mpi_age <- 
   enaho2022_mpi_data |> 
@@ -521,34 +599,40 @@ enaho2022_mpi_age <-
                             between(age, 18, 59) ~ "18-59",
                             age >= 60 ~ "60+"),
          agegrp = str_c("age", agegrp, sep = "_")) |> 
-  summarize(across(health_access:health_insurance, \(x) weighted.mean(x, hhwt, na.rm = TRUE)),
-            education_participation = weighted.mean(education_participation, hhwt*between(age,5,19), na.rm = TRUE),
-            education_attainment = weighted.mean(education_attainment, hhwt*(age>=20), na.rm = TRUE),
-            across(housing_structure:energy_fuel, \(x) weighted.mean(x, hhwt, na.rm = TRUE)),
-            across(employment_employment:employment_contract, \(x) weighted.mean(x, hhwt*(age>=14), na.rm = TRUE)),
-            across(connectivity_participation:connectivity_ict, \(x) weighted.mean(x, hhwt, na.rm = TRUE)),
-            .by = agegrp) |> 
-  pivot_longer(-1, names_to = c("dim", "ind"), names_sep = "_", values_to = "p") |> 
+  mutate(across(health_access:health_insurance, list(num = ~sum(hhwt * ., na.rm = TRUE), denom = ~sum(hhwt, na.rm = TRUE), mean = ~weighted.mean(., w = hhwt, na.rm = TRUE)), .names = "{.col}_{.fn}"), .by = agegrp) |> 
+  mutate(across(education_participation, list(num = ~sum(hhwt * between(age,5,19) * ., na.rm = TRUE), denom = ~sum(hhwt * between(age,5,19), na.rm = TRUE), mean = ~weighted.mean(., hhwt*between(age,5,19), na.rm = TRUE)), .names = "{.col}_{.fn}"), .by = agegrp) |> 
+  mutate(across(education_attainment, list(num = ~sum(hhwt * (age>=20) * ., na.rm = TRUE), denom = ~sum(hhwt * (age>=20), na.rm = TRUE), mean = ~weighted.mean(., hhwt * (age>=20), na.rm = TRUE)), .names = "{.col}_{.fn}"), .by = agegrp) |>
+  mutate(across(housing_structure:energy_fuel, list(num = ~sum(hhwt * ., na.rm = TRUE), denom = ~sum(hhwt, na.rm = TRUE), mean = ~weighted.mean(., w = hhwt, na.rm = TRUE)), .names = "{.col}_{.fn}"), .by = agegrp) |> 
+  mutate(across(employment_employment:employment_contract, list(num = ~sum(hhwt * (age>=14) * ., na.rm = TRUE), denom = ~sum(hhwt * (age>=14), na.rm = TRUE), mean = ~weighted.mean(., hhwt * (age>=14), na.rm = TRUE)), .names = "{.col}_{.fn}"), .by = agegrp) |>
+  mutate(across(connectivity_participation:connectivity_ict, list(num = ~sum(hhwt * ., na.rm = TRUE), denom = ~sum(hhwt, na.rm = TRUE), mean = ~weighted.mean(., w = hhwt, na.rm = TRUE)), .names = "{.col}_{.fn}"), .by = agegrp) |> 
+  group_by(agegrp) |> 
+  arrange(agegrp) |> 
+  filter(row_number()==1) |> 
+  select(agegrp, ends_with(c("_mean", "_denom", "_num"))) |> 
+  mutate(across(ends_with("num"), ~ round(., 2))) |> 
+  mutate(across(ends_with("denom"), ~ round(., 2))) |> 
+  pivot_longer(-1, names_to = c("dim", "ind", "type"), names_sep = "_", values_to = "p") |> 
   pivot_wider(names_from = agegrp, values_from = p) |> 
   mutate(across(starts_with("age"), \(x) if_else(dim %in% c("education", "employment"), NA, x))) |> 
-  select(dim, ind, `age_0-4`, `age_5-17`, `age_18-59`, `age_60+`)
-
+  select(dim, ind, type, `age_0-4`, `age_5-17`, `age_18-59`, `age_60+`)
+  
 enaho2022_mpi_dashboard <- 
   list(enaho2022_mpi_genpop, enaho2022_mpi_loc, enaho2022_mpi_sex, enaho2022_mpi_age) |> 
   reduce(full_join)
 
 # Table 1
 mpi_db_20222 <- 
-  full_join(enpove2022_mpi_dashboard |> rename_with(\(x) paste0(x, "_ven"), -c(dim, ind)),
-            enaho2022_mpi_dashboard |> rename_with(\(x) paste0(x, "_per"), -c(dim, ind))) |> 
+  full_join(enpove2022_mpi_dashboard |> rename_with(\(x) paste0(x, "_ven"), -c(dim, ind, type)),
+            enaho2022_mpi_dashboard |> rename_with(\(x) paste0(x, "_per"), -c(dim, ind, type))) |> 
   select(dim, ind,
+         type,
          total_ven, total_per,
          location_Lima_ven, location_Lima_per, location_Other_ven, location_Other_per,
          sex_M_ven, sex_M_per, sex_F_ven, sex_F_per,
          `age_0-4_ven`, `age_0-4_per`, `age_5-17_ven`, `age_5-17_per`,
          `age_18-59_ven`, `age_18-59_per`, `age_60+_ven`, `age_60+_per`)
 
-#mpi_db_20222 |> write_xlsx("out/dashboard.xlsx", format_headers = FALSE)
+ mpi_db_20222 |> write_xlsx("Table_1.xlsx", format_headers = FALSE)
 
 # MPI index ----
 mpi_index <- 
@@ -562,16 +646,29 @@ mpi_index <-
             .by = c(pop, clustid, vivid, hhid)) |> 
   mutate(deprivations = pick(where(is.logical)) |> rowSums(),
          mpi_poor = deprivations/14 >= 3/7) |> 
-  summarize(H = weighted.mean(mpi_poor, hhwt, na.rm = TRUE),
-            A = weighted.mean(deprivations/14, hhwt*mpi_poor, na.rm = TRUE),
-            M0 = H*A,
-            .by = pop) |> 
-  mutate(year = parse_number(pop),
+  mutate(across(mpi_poor, list(num = ~sum(hhwt * ., na.rm = TRUE), denom = ~sum(hhwt, na.rm = TRUE), mean = ~weighted.mean(., w = hhwt, na.rm = TRUE)), .names = "H_{.fn}"), .by = pop) |> 
+  mutate(across(deprivations, list(num = ~sum(hhwt * mpi_poor * (./14), na.rm = TRUE), denom = ~sum(hhwt * mpi_poor, na.rm = TRUE), mean = ~weighted.mean(./14, hhwt*mpi_poor, na.rm = TRUE)), .names = "A_{.fn}"), .by = pop) |> 
+  mutate(M0_mean = H_mean*A_mean, .by = pop) |> 
+  group_by(pop) |> 
+  arrange(pop) |> 
+  filter(row_number()==1) |> 
+  select(pop, ends_with(c("_mean", "_denom", "_num"))) |> 
+  mutate(across(ends_with("num"), ~ round(., 2))) |> 
+  mutate(across(ends_with("denom"), ~ round(., 2))) |> 
+    mutate(year = parse_number(pop),
          pop = str_match(pop, "(ven|per)")[,2],
          .before = everything()) |> 
-  rename("Población" = pop) |>
-  mutate(across('Población', str_replace, 'per', 'Peruana')) |> 
-  mutate(across('Población', str_replace, 'ven', 'Venezolana'))
+  rename(H = H_mean) |> 
+  rename(A = A_mean) |> 
+  rename(M0 = M0_mean) |> 
+  ungroup() |> 
+  mutate(across(pop, str_replace, 'per', 'Peruana')) |> 
+  mutate(across(pop, str_replace, 'ven', 'Venezolana')) |> 
+  rename("Población" = pop)
+  
+  
+  
+  
 
 # Charts 2, 3, 4
 
@@ -596,6 +693,8 @@ mpi_index |>
         axis.text.y = element_blank())
 # 
 # ggsave("out/mpi_H.png", bg = "white")
+
+ # write_xlsx(mpi_index, "Chart_234.xlsx")
 
 # A
 mpi_index |> 
@@ -664,19 +763,31 @@ poorcnt <- sum(enpove2022_subgroup_data$hhwt*replace_na(enpove2022_subgroup_data
 enpove2022_subgroup_age <- 
   enpove2022_subgroup_data |> 
   summarize(pop = sum(hhwt)/popcnt, 
+            pop_num = sum(hhwt),
+            pop_denom = popcnt,
             poor = sum(hhwt*mpi_poor, na.rm = TRUE)/poorcnt, 
+            poor_num = sum(hhwt*mpi_poor, na.rm = TRUE),
+            poor_denom = poorcnt,
             .by = agegrp)
 
 enpove2022_subgroup_sex <- 
   enpove2022_subgroup_data |> 
   summarize(pop = sum(hhwt)/popcnt, 
-            poor = sum(hhwt*mpi_poor, na.rm = TRUE)/poorcnt, 
+            pop_num = sum(hhwt),
+            pop_denom = popcnt,
+            poor = sum(hhwt*mpi_poor, na.rm = TRUE)/poorcnt,
+            poor_num = sum(hhwt*mpi_poor, na.rm = TRUE),
+            poor_denom = poorcnt,
             .by = sex)
 
 enpove2022_subgroup_location <- 
   enpove2022_subgroup_data |> 
   summarize(pop = sum(hhwt)/popcnt, 
+            pop_num = sum(hhwt),
+            pop_denom = popcnt,
             poor = sum(hhwt*mpi_poor, na.rm = TRUE)/poorcnt, 
+            poor_num = sum(hhwt*mpi_poor, na.rm = TRUE),
+            poor_denom = poorcnt,
             .by = location)
 
 enpove2022_subgroup_stats <- 
@@ -688,7 +799,7 @@ enpove2022_subgroup_stats <-
                            "M", "F",
                            "Lima Metro", "Other Urban")) |> 
   arrange(dim, lvl) |> 
-  pivot_longer(cols = c(pop, poor), names_to = "Tipo", values_to = "Total") |> 
+  pivot_longer(cols = c(pop, pop_num, pop_denom, poor, poor_num, poor_denom), names_to = "Tipo", values_to = "Total") |> 
   mutate(across('dim', str_replace, 'age', 'Edad')) |> 
   mutate(across('dim', str_replace, 'loc', 'Ubicación')) |> 
   mutate(across('dim', str_replace, 'sex', 'Sexo')) |> 
@@ -698,8 +809,16 @@ enpove2022_subgroup_stats <-
   mutate(across('lvl', str_replace, 'F', 'Mujer')) |>   
   mutate(across('lvl', str_replace, 'Other Urban', 'Otro Urbano'))
 
+enpove2022_subgroup_stats_details <- enpove2022_subgroup_stats |> 
+  pivot_wider(names_from = Tipo, values_from = Total) |> 
+  mutate(across(ends_with("num"), ~ round(., 2))) |> 
+  mutate(across(ends_with("denom"), ~ round(., 2)))
+  
+# write_xlsx(enpove2022_subgroup_stats_details, "Chart_6.xlsx")
+
 # Chart 6
 enpove2022_subgroup_stats |> 
+  filter(Tipo == "pop" | Tipo == "poor") |> 
   ggplot(aes(lvl, Total, group = Tipo)) +
   geom_col(aes(fill = Tipo), position = position_dodge()) +
   geom_label(aes(label = scales::label_percent(.1)(Total)),
@@ -732,9 +851,12 @@ enpove2022_dim_contrib <-
             .by = c(clustid, vivid, hhid)) |> 
   mutate(deprivations = pick(where(is.logical)) |> rowSums(),
          mpi_poor = deprivations/14 >= 3/7) |> 
-  summarize(across(health_access:connectivity_ict,
-                   \(x) sum(x*hhwt*mpi_poor, na.rm = TRUE)/sum(deprivations*hhwt*mpi_poor, na.rm = TRUE))) |> 
-  pivot_longer(everything(), names_to = c("dim", "ind"), names_sep = "_", values_to = "p")
+  mutate(across(health_access:connectivity_ict, list(num = ~sum(. * hhwt * mpi_poor, na.rm = TRUE), denom = ~sum(deprivations * hhwt * mpi_poor, na.rm = TRUE), mean = ~sum(. * hhwt * mpi_poor, na.rm = TRUE)/sum(deprivations * hhwt * mpi_poor, na.rm = TRUE)))) |> 
+  slice(1) |> 
+  select(ends_with(c("_mean", "_denom", "_num"))) |> 
+  mutate(across(ends_with("num"), ~ round(., 2))) |> 
+  mutate(across(ends_with("denom"), ~ round(., 2))) |> 
+  pivot_longer(everything(), names_to = c("dim", "ind", "type"), names_sep = "_", values_to = "p")
 
 enpove2018_dim_contrib <- 
   enpove2018_mpi_data |> 
@@ -743,9 +865,10 @@ enpove2018_dim_contrib <-
             .by = c(clustid, vivid, hhid)) |> 
   mutate(deprivations = pick(where(is.logical)) |> rowSums(),
          mpi_poor = deprivations/14 >= 3/7) |> 
-  summarize(across(health_access:connectivity_ict,
-                   \(x) sum(x*hhwt*mpi_poor, na.rm = TRUE)/sum(deprivations*hhwt*mpi_poor, na.rm = TRUE))) |> 
-  pivot_longer(everything(), names_to = c("dim", "ind"), names_sep = "_", values_to = "p")
+  mutate(across(health_access:connectivity_ict, list(num = ~sum(. * hhwt * mpi_poor, na.rm = TRUE), denom = ~sum(deprivations * hhwt * mpi_poor, na.rm = TRUE), mean = ~sum(. * hhwt * mpi_poor, na.rm = TRUE)/sum(deprivations * hhwt * mpi_poor, na.rm = TRUE)))) |> 
+  slice(1) |> 
+  select(ends_with(c("_mean", "_denom", "_num"))) |> 
+  pivot_longer(everything(), names_to = c("dim", "ind", "type"), names_sep = "_", values_to = "p")
 
 enaho2022_dim_contrib <- 
   enaho2022_mpi_data |> 
@@ -754,9 +877,12 @@ enaho2022_dim_contrib <-
             .by = c(clustid, vivid, hhid)) |> 
   mutate(deprivations = pick(where(is.logical)) |> rowSums(),
          mpi_poor = deprivations/14 >= 3/7) |> 
-  summarize(across(health_access:connectivity_ict,
-                   \(x) sum(x*hhwt*mpi_poor, na.rm = TRUE)/sum(deprivations*hhwt*mpi_poor, na.rm = TRUE))) |> 
-  pivot_longer(everything(), names_to = c("dim", "ind"), names_sep = "_", values_to = "p")
+  mutate(across(health_access:connectivity_ict, list(num = ~sum(. * hhwt * mpi_poor, na.rm = TRUE), denom = ~sum(deprivations * hhwt * mpi_poor, na.rm = TRUE), mean = ~sum(. * hhwt * mpi_poor, na.rm = TRUE)/sum(deprivations * hhwt * mpi_poor, na.rm = TRUE)))) |> 
+  slice(1) |> 
+  select(ends_with(c("_mean", "_denom", "_num"))) |> 
+  mutate(across(ends_with("num"), ~ round(., 2))) |> 
+  mutate(across(ends_with("denom"), ~ round(., 2))) |> 
+  pivot_longer(everything(), names_to = c("dim", "ind", "type"), names_sep = "_", values_to = "p")
 
 enaho2018_dim_contrib <- 
   enaho2018_mpi_data |> 
@@ -765,9 +891,38 @@ enaho2018_dim_contrib <-
             .by = c(clustid, vivid, hhid)) |> 
   mutate(deprivations = pick(where(is.logical)) |> rowSums(),
          mpi_poor = deprivations/14 >= 3/7) |> 
-  summarize(across(health_access:connectivity_ict,
-                   \(x) sum(x*hhwt*mpi_poor, na.rm = TRUE)/sum(deprivations*hhwt*mpi_poor, na.rm = TRUE))) |> 
-  pivot_longer(everything(), names_to = c("dim", "ind"), names_sep = "_", values_to = "p")
+  mutate(across(health_access:connectivity_ict, list(num = ~sum(. * hhwt * mpi_poor, na.rm = TRUE), denom = ~sum(deprivations * hhwt * mpi_poor, na.rm = TRUE), mean = ~sum(. * hhwt * mpi_poor, na.rm = TRUE)/sum(deprivations * hhwt * mpi_poor, na.rm = TRUE)))) |> 
+  slice(1) |> 
+  select(ends_with(c("_mean", "_denom", "_num"))) |> 
+  mutate(across(ends_with("num"), ~ round(., 2))) |> 
+  mutate(across(ends_with("denom"), ~ round(., 2))) |> 
+  pivot_longer(everything(), names_to = c("dim", "ind", "type"), names_sep = "_", values_to = "p")
+
+dim_contrib_details <-
+  bind_rows(per2018 = enaho2018_dim_contrib,
+            ven2018 = enpove2018_dim_contrib,
+            per2022 = enaho2022_dim_contrib,
+            ven2022 = enpove2022_dim_contrib,
+            .id = "pop") |> 
+  pivot_wider(names_from = type, values_from = p) |> 
+  mutate(num = round(num, digits = 2)) |> 
+  mutate(denom = round(denom, digits = 2)) |> 
+  mutate(year = parse_number(pop),
+         pop = str_match(pop, "(ven|per)")[,2],
+         .before = everything()) |> 
+  rename("Población" = pop) |>
+  mutate(across('Población', str_replace, 'per', 'Peruana')) |> 
+  mutate(across('Población', str_replace, 'ven', 'Venezolana')) |> 
+  mutate(across('dim', str_replace, 'health', 'Salud')) |> 
+  mutate(across('dim', str_replace, 'education', 'Educación')) |> 
+  mutate(across('dim', str_replace, 'housing', 'Vivienda')) |> 
+  mutate(across('dim', str_replace, 'wash', 'Agua y saneamiento')) |> 
+  mutate(across('dim', str_replace, 'energy', 'Energía')) |> 
+  mutate(across('dim', str_replace, 'employment', 'Empleo y provisión social')) |> 
+  mutate(across('dim', str_replace, 'connectivity', 'Conectividad'))
+  
+  
+# write_xlsx(dim_contrib_details, "Chart_5.xlsx")
 
 dim_contrib <- 
   bind_rows(per2018 = enaho2018_dim_contrib,
@@ -775,6 +930,8 @@ dim_contrib <-
             per2022 = enaho2022_dim_contrib,
             ven2022 = enpove2022_dim_contrib,
             .id = "pop") |> 
+  filter(type == "mean") |> 
+  select(pop, dim, ind, p) |> 
   summarize(p = sum(p),
             .by = c(pop, dim)) |> 
   mutate(year = parse_number(pop),
