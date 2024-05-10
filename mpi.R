@@ -416,7 +416,7 @@ mpi_stats <-
   relocate(num, .before = denom)
 
 
-# Chart 1
+# Chart 9
 mpi_stats |> 
   select(ENPOVE:mean) |> 
   rename(p = mean) |> 
@@ -450,7 +450,7 @@ mpi_stats |>
         strip.text = element_text(face = "bold")
         )
 
-# mpi_stats |> write_xlsx("Chart_1.xlsx", format_headers = FALSE)
+# mpi_stats |> write_xlsx("Chart_9.xlsx", format_headers = FALSE)
 
 # MPI dashboard (disaggregated) ----
 # ENPOVE first
@@ -620,7 +620,7 @@ enaho2022_mpi_dashboard <-
   list(enaho2022_mpi_genpop, enaho2022_mpi_loc, enaho2022_mpi_sex, enaho2022_mpi_age) |> 
   reduce(full_join)
 
-# Table 1
+# Table 4
 mpi_db_20222 <- 
   full_join(enpove2022_mpi_dashboard |> rename_with(\(x) paste0(x, "_ven"), -c(dim, ind, type)),
             enaho2022_mpi_dashboard |> rename_with(\(x) paste0(x, "_per"), -c(dim, ind, type))) |> 
@@ -632,7 +632,7 @@ mpi_db_20222 <-
          `age_0-4_ven`, `age_0-4_per`, `age_5-17_ven`, `age_5-17_per`,
          `age_18-59_ven`, `age_18-59_per`, `age_60+_ven`, `age_60+_per`)
 
- mpi_db_20222 |> write_xlsx("Table_1.xlsx", format_headers = FALSE)
+ mpi_db_20222 |> write_xlsx("Table_4.xlsx", format_headers = FALSE)
 
 # MPI index ----
 mpi_index <- 
@@ -670,7 +670,7 @@ mpi_index <-
   
   
 
-# Charts 2, 3, 4
+# Charts 6, 7, 8
 
 # H
 mpi_index |> 
@@ -694,7 +694,7 @@ mpi_index |>
 # 
 # ggsave("out/mpi_H.png", bg = "white")
 
- # write_xlsx(mpi_index, "Chart_234.xlsx")
+ # write_xlsx(mpi_index, "Chart_678.xlsx")
 
 # A
 mpi_index |> 
@@ -814,9 +814,9 @@ enpove2022_subgroup_stats_details <- enpove2022_subgroup_stats |>
   mutate(across(ends_with("num"), ~ round(., 2))) |> 
   mutate(across(ends_with("denom"), ~ round(., 2)))
   
-# write_xlsx(enpove2022_subgroup_stats_details, "Chart_6.xlsx")
+# write_xlsx(enpove2022_subgroup_stats_details, "Chart_10.xlsx")
 
-# Chart 6
+# Chart 10
 enpove2022_subgroup_stats |> 
   filter(Tipo == "pop" | Tipo == "poor") |> 
   ggplot(aes(lvl, Total, group = Tipo)) +
@@ -922,7 +922,7 @@ dim_contrib_details <-
   mutate(across('dim', str_replace, 'connectivity', 'Conectividad'))
   
   
-# write_xlsx(dim_contrib_details, "Chart_5.xlsx")
+# write_xlsx(dim_contrib_details, "Chart_na.xlsx")
 
 dim_contrib <- 
   bind_rows(per2018 = enaho2018_dim_contrib,
@@ -948,27 +948,27 @@ dim_contrib <-
   mutate(across('dim', str_replace, 'employment', '06Empleo y provisión social')) |> 
   mutate(across('dim', str_replace, 'connectivity', '07Conectividad'))
 
-# Chart 5
-dim_contrib |> 
-  ggplot(aes(`Población`, p, group = dim)) +
-  geom_col(aes(fill = dim), position = position_stack()) +
-  geom_label(aes(label = scales::label_percent(.1)(p)),
-             position = position_stack(.5),
-             fill = NA,
-             label.size = NA) +
-  # geom_label(aes(label = scales::label_percent(.1)(p)),
-  #            position = position_stack(.5)) +
-  facet_wrap(vars(year), nrow = 1) +
-  scale_y_continuous(labels = scales::label_percent()) +
-  scale_fill_manual(values = thematic::okabe_ito(7)) +
-  labs(x = NULL,y = NULL
-  #     title = "Dimensional Contributions"
-       ) +
-  theme_minimal() +
-  theme(panel.grid = element_blank(),
-        axis.text.y = element_blank(), 
-        strip.text = element_text(face = "bold")
-  )
+# Chart na
+# dim_contrib |> 
+#   ggplot(aes(`Población`, p, group = dim)) +
+#   geom_col(aes(fill = dim), position = position_stack()) +
+#   geom_label(aes(label = scales::label_percent(.1)(p)),
+#              position = position_stack(.5),
+#              fill = NA,
+#              label.size = NA) +
+#   # geom_label(aes(label = scales::label_percent(.1)(p)),
+#   #            position = position_stack(.5)) +
+#   facet_wrap(vars(year), nrow = 1) +
+#   scale_y_continuous(labels = scales::label_percent()) +
+#   scale_fill_manual(values = thematic::okabe_ito(7)) +
+#   labs(x = NULL,y = NULL
+#   #     title = "Dimensional Contributions"
+#        ) +
+#   theme_minimal() +
+#   theme(panel.grid = element_blank(),
+#         axis.text.y = element_blank(), 
+#         strip.text = element_text(face = "bold")
+#   )
 
 
 # library(unhcrthemes)
